@@ -37,7 +37,7 @@
 
 ## Documentație de context
 
-- `.ai-factory/ARCHITECTURE.md`, `AGENTS.md` și `.ai-factory/DESCRIPTION.md` descriu starea curentă a codului, nu planurile viitoare
+- `.ai-factory/ARCHITECTURE.md`, `AGENTS.md`, `README.md` și `.ai-factory/DESCRIPTION.md` descriu starea curentă a codului, nu planurile viitoare
 - Orice schimbare de structură, modul, dependență sau configurare actualizează aceste fișiere în același commit
 - O sarcină nu e considerată terminată dacă aceste fișiere nu mai corespund codului
 

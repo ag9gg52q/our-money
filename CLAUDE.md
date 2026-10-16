@@ -8,5 +8,6 @@ commit fișierele care descriu **starea curentă** a codului (nu planurile):
 - `.ai-factory/ARCHITECTURE.md` — structura folderelor, modulele existente, configurarea curentă, data ultimei actualizări
 - `AGENTS.md` — structura proiectului și punctele de intrare
 - `.ai-factory/DESCRIPTION.md` — tech stack-ul și funcționalitățile, dacă s-au schimbat
+- `README.md` — pașii de setup, dacă s-au schimbat dependențele, variabilele de mediu sau comenzile
 
 Convențiile de cod sunt în `.ai-factory/rules/base.md`.

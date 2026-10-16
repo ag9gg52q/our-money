@@ -11,7 +11,8 @@ Django, iar interfața va fi o aplicație React + TypeScript separată.
 Proiectul are și un scop de **învățare**: dezvoltarea lui este drumul prin care se învață
 Python (Django) și React + TypeScript. Aplicația pornește de la zero — istoricul din Excel nu se importă.
 
-Stadiul curent: scaffold Django gol (`django-admin startproject`), fără aplicații de domeniu.
+Stadiul curent: fundația backend este gata — setări din `.env`, PostgreSQL, Django REST Framework,
+endpoint-ul `GET /api/v1/health/` și teste pytest. Nu există încă aplicații de domeniu.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
@@ -28,10 +29,11 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 - **Limbaj (backend):** Python 3
 - **Framework (backend):** Django 6.1 + Django REST Framework (API REST)
-- **Bază de date:** PostgreSQL (scaffold-ul folosește momentan SQLite — de migrat)
+- **Bază de date:** PostgreSQL 18
 - **ORM:** Django ORM
+- **Configurare:** django-environ (`.env`)
 - **Frontend (planificat):** React + TypeScript (aplicație separată, consumă API-ul)
-- **Teste:** pytest + pytest-django (planificat)
+- **Teste:** pytest + pytest-django
 - **Integrări:** import CSV extrase bancare; sursă de cursuri valutare (de stabilit)
 
 ## Note de arhitectură
@@ -53,8 +55,7 @@ Pattern: Structured Modules (Technical Layer)
 
 - **Logging:** modulul standard `logging` din Python, nivel configurabil prin `LOG_LEVEL`.
 - **Tratarea erorilor:** răspunsuri de eroare structurate (format DRF consistent), validare în serializers.
-- **Configurare:** secrete și setări per mediu din variabile de mediu (`.env`), nu în cod
-  (`SECRET_KEY`, `DEBUG`, `DATABASE_URL` sunt momentan hardcodate în `settings.py`).
+- **Configurare:** secrete și setări per mediu din variabile de mediu (`.env`), nu în cod.
 - **Securitate:** autentificare obligatorie pe toate endpoint-urile, izolare strictă a datelor
   între utilizatori, CORS restrâns la originea frontend-ului, validarea fișierelor CSV importate.
 - **Precizie financiară:** calcule cu `Decimal`, rotunjire explicită, fără pierderi la conversia valutară.
