@@ -7,7 +7,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 ## Milestones
 
 - [x] **Scaffold Django** — proiectul Django inițial creat cu `startproject`
-- [ ] **Fundația backend** — PostgreSQL, setări din `.env`, Django REST Framework, pytest, fișier de dependențe
+- [x] **Fundația backend** — PostgreSQL, setări din `.env`, Django REST Framework, pytest, fișier de dependențe
 - [ ] **Fundația frontend** — aplicație React + TypeScript (Vite), layout, routing, conectare la API
 - [ ] **Autentificare** — login/logout, datele fiecărui utilizator izolate
 - [ ] **Categorii și subcategorii** — gestionarea nomenclatorului de categorii și subcategorii
@@ -27,3 +27,4 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Milestone | Data |
 |-----------|------|
 | Scaffold Django | 2026-10-16 |
+| Fundația backend | 2026-10-16 |

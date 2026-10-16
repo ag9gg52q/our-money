@@ -10,27 +10,35 @@ Aplicație web de finanțe personale care înlocuiește un fișier Excel: cheltu
 
 - **Limbaj:** Python 3 (backend), TypeScript (frontend planificat)
 - **Framework:** Django 6.1 + Django REST Framework; React (planificat)
-- **Bază de date:** PostgreSQL (momentan SQLite în scaffold)
+- **Bază de date:** PostgreSQL 18
 - **ORM:** Django ORM
+- **Teste:** pytest + pytest-django
 
 ## Structura proiectului
 
 ```
 our-money/
-├── ourmoney/                 # Proiectul Django (rădăcina pentru manage.py)
-│   ├── manage.py             # CLI Django: runserver, migrate, makemigrations, test
-│   └── ourmoney/             # Pachetul de configurare al proiectului
-│       ├── settings.py       # Setări Django (DB, INSTALLED_APPS, middleware)
-│       ├── urls.py           # Rutele principale (momentan doar admin/)
-│       ├── asgi.py           # Entry point ASGI
-│       └── wsgi.py           # Entry point WSGI
-├── .ai-factory/              # Context AI Factory (descriere, reguli, planuri)
+├── ourmoney/                 # Proiectul Django (conține manage.py)
+│   ├── manage.py             # CLI Django: runserver, migrate, makemigrations, startapp
+│   ├── ourmoney/             # Pachetul de configurare al proiectului
+│   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
+│   │   ├── urls.py           # admin/ și api/v1/ → core.urls
+│   │   ├── asgi.py           # Entry point ASGI
+│   │   └── wsgi.py           # Entry point WSGI
+│   └── core/                 # App comun: endpoint-ul de health
+│       ├── views.py          # health (GET, public)
+│       ├── urls.py           # health/
+│       └── tests/            # teste pytest
+├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
+├── .env.example              # Variabilele de mediu necesare (copiază în .env)
+├── requirements.txt          # Dependențe Python, versiuni fixate
+├── pytest.ini                # Configurare pytest-django
 ├── .mcp.json                 # Configurare servere MCP (github, playwright, postgres)
 ├── skills-lock.json          # Versiunile skill-urilor externe instalate
 ├── AGENTS.md                 # Acest fișier
 ├── CLAUDE.md                 # Instrucțiuni Claude Code (include AGENTS.md)
-└── README.md
+└── README.md                 # Pașii de rulare locală
 ```
 
 ## Puncte de intrare cheie
@@ -38,15 +46,18 @@ our-money/
 | Fișier | Scop |
 |--------|------|
 | `ourmoney/manage.py` | Comenzi de management Django |
-| `ourmoney/ourmoney/settings.py` | Configurarea proiectului (DB, aplicații, securitate) |
-| `ourmoney/ourmoney/urls.py` | Rutarea URL de nivel superior |
+| `ourmoney/ourmoney/settings.py` | Configurarea proiectului (DB, aplicații, DRF, securitate) |
+| `ourmoney/ourmoney/urls.py` | Rutarea URL de nivel superior; API sub `/api/v1/` |
+| `ourmoney/core/views.py` | Endpoint-ul `GET /api/v1/health/` |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
+| `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |
+| `pytest.ini` | Configurarea testelor |
 
 ## Documentație
 
 | Document | Cale | Descriere |
 |----------|------|-----------|
-| README | README.md | Pagina de start a proiectului |
+| README | README.md | Doar pașii de rulare locală și rularea testelor, descriși simplu |
 
 ## Fișiere de context AI
 
@@ -68,9 +79,12 @@ our-money/
   - `.ai-factory/ARCHITECTURE.md` — structura folderelor, modulele existente, configurarea curentă
   - `AGENTS.md` — structura proiectului și punctele de intrare
   - `.ai-factory/DESCRIPTION.md` — tech stack-ul și funcționalitățile, dacă s-au schimbat
+  - `README.md` — pașii de setup, dacă s-au schimbat dependențele, variabilele de mediu sau comenzile
 
 - Nu combina comenzi shell cu `&&`; rulează-le separat, pas cu pas.
   - Greșit: `git checkout main && git pull`
   - Corect: mai întâi `git checkout main`, apoi `git pull origin main`
-- Comenzile Django se rulează din directorul `ourmoney/` (unde se află `manage.py`).
+- Comenzile Django și `pytest` se rulează din rădăcina repo-ului, cu `.venv` activ:
+  `python ourmoney/manage.py <comandă>`. Excepție: `startapp` se rulează din `ourmoney/`,
+  ca app-ul nou să fie creat lângă `core/`.
 - Sumele de bani se reprezintă doar cu `Decimal` / `DecimalField`, niciodată `float`.
