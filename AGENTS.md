@@ -38,7 +38,7 @@ our-money/
 ├── skills-lock.json          # Versiunile skill-urilor externe instalate
 ├── AGENTS.md                 # Acest fișier
 ├── CLAUDE.md                 # Instrucțiuni Claude Code (include AGENTS.md)
-└── README.md                 # Instrucțiuni de setup și mod de lucru
+└── README.md                 # Pașii de rulare locală
 ```
 
 ## Puncte de intrare cheie
@@ -57,7 +57,7 @@ our-money/
 
 | Document | Cale | Descriere |
 |----------|------|-----------|
-| README | README.md | Setup local, teste, structură, mod de lucru |
+| README | README.md | Doar pașii de rulare locală și rularea testelor, descriși simplu |
 
 ## Fișiere de context AI
 
