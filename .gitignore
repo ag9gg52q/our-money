@@ -220,8 +220,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # AI factory
-.ai-factory/
 .ai-factory.json
 
-# Claude
-.claude/
+# Claude (doar setările personale/locale)
+.claude/settings.local.json

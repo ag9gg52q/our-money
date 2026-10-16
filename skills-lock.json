@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "django-rest-api-development": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "django-rest-api-development/SKILL.md",
+      "computedHash": "dff929a921b4bb678f256aecb8ca0d6352e07ce069ac97077481f7ffb281fb70"
+    },
+    "django-safe-migration": {
+      "source": "vintasoftware/django-ai-plugins",
+      "sourceType": "github",
+      "skillPath": "skills/django-safe-migration/SKILL.md",
+      "computedHash": "b28691565037d29de87a2f16d39bbf825685b46a6249226d05b70533125d4f23"
+    },
+    "postgres": {
+      "source": "planetscale/database-skills",
+      "sourceType": "github",
+      "skillPath": "skills/postgres/SKILL.md",
+      "computedHash": "54ce5fd368f13d598f9afbd3feed8fb5ac7902afbb6cb0125e4ad187c8972c79"
+    },
+    "react-vite-best-practices": {
+      "source": "asyrafhussin/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-vite-best-practices/SKILL.md",
+      "computedHash": "bfd0d0cef40fd678863adcc5bc96a27ffb9c5cece99f56894dc22e5f36f37c6b"
+    }
+  }
+}
