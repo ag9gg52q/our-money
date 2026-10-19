@@ -2,7 +2,7 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-16 — fundația backend (setări din `.env`, PostgreSQL, DRF, app `core`, pytest).
+> Ultima actualizare: 2026-10-19 — eliminate fișierele goale din `core` (`models.py`, `admin.py`, `migrations/`).
 
 ## Prezentare generală
 
@@ -37,8 +37,7 @@ our-money/
 │   └── core/                      # App comun (cross-cutting)
 │       ├── views.py               # health — GET, public (AllowAny)
 │       ├── urls.py                # health/ (name='health')
-│       ├── apps.py, admin.py, models.py   # generate de startapp, fără conținut propriu
-│       ├── migrations/            # fără migrații proprii
+│       ├── apps.py                # CoreConfig
 │       └── tests/
 │           └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
@@ -57,7 +56,7 @@ our-money/
 | Modul | Scop | Stare |
 |-------|------|-------|
 | `ourmoney` (pachet de configurare) | Setări, rutare, entry points ASGI/WSGI | Setări din `.env`, DRF configurat |
-| `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health |
+| `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health; fără modele (deci fără `models.py`, `admin.py`, `migrations/`) |
 
 Nu există încă aplicații de domeniu.
 
