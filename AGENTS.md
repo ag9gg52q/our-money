@@ -8,11 +8,11 @@ Aplicație web de finanțe personale care înlocuiește un fișier Excel: cheltu
 
 ## Tech Stack
 
-- **Limbaj:** Python 3 (backend), TypeScript (frontend planificat)
-- **Framework:** Django 6.1 + Django REST Framework; React (planificat)
+- **Backend:** Python 3.13, Django 6.1 + Django REST Framework, Django ORM
+- **Frontend:** React 19 + TypeScript 6, Vite 8, React Router 8
 - **Bază de date:** PostgreSQL 18
-- **ORM:** Django ORM
-- **Teste:** pytest + pytest-django
+- **Teste:** pytest + pytest-django (backend)
+- **Calitate cod frontend:** ESLint (probleme de cod) + Prettier (formatare)
 
 ## Structura proiectului
 
@@ -29,11 +29,21 @@ our-money/
 │       ├── views.py          # health (GET, public)
 │       ├── urls.py           # health/
 │       └── tests/            # teste pytest
+├── frontend/                 # Aplicația React + TypeScript (Vite)
+│   ├── vite.config.ts        # Proxy /api → Django (127.0.0.1:8000)
+│   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
+│   └── src/
+│       ├── main.tsx          # Punctul de intrare
+│       ├── App.tsx           # Rutele aplicației
+│       ├── components/       # Componente reutilizabile (Layout)
+│       ├── pages/            # O componentă per pagină
+│       └── api/              # Funcțiile care apelează API-ul backend
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
 ├── .env.example              # Variabilele de mediu necesare (copiază în .env)
 ├── requirements.txt          # Dependențe Python, versiuni fixate
 ├── pytest.ini                # Configurare pytest-django
+├── .gitattributes            # Terminații de linie LF pentru toate fișierele text
 ├── .mcp.json                 # Configurare servere MCP (github, playwright, postgres)
 ├── skills-lock.json          # Versiunile skill-urilor externe instalate
 ├── AGENTS.md                 # Acest fișier
@@ -52,6 +62,10 @@ our-money/
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |
 | `pytest.ini` | Configurarea testelor |
+| `frontend/src/main.tsx` | Punctul de intrare al aplicației React |
+| `frontend/src/App.tsx` | Rutele frontend-ului |
+| `frontend/src/api/` | Apelurile către API-ul backend (ex. `health.ts`) |
+| `frontend/vite.config.ts` | Configurare Vite + proxy `/api` |
 
 ## Documentație
 
@@ -87,4 +101,7 @@ our-money/
 - Comenzile Django și `pytest` se rulează din rădăcina repo-ului, cu `.venv` activ:
   `python ourmoney/manage.py <comandă>`. Excepție: `startapp` se rulează din `ourmoney/`,
   ca app-ul nou să fie creat lângă `core/`.
+- Comenzile frontend (`npm install`, `npm run dev`, `npm run lint`, `npm run format`) se rulează din `frontend/`.
+  Înainte de commit pe frontend: `npm run format`, `npm run lint`, `npx tsc -b`.
+- În frontend, `fetch` se folosește doar în `frontend/src/api/`; adresele API se termină cu `/`.
 - Sumele de bani se reprezintă doar cu `Decimal` / `DecimalField`, niciodată `float`.
