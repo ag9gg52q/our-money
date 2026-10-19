@@ -1,10 +1,20 @@
-function App() {
+import { BrowserRouter, Route, Routes } from 'react-router'
 
-    return (
-        <h1>
-            Our Money
-        </h1>
-    )
+import Layout from './components/Layout'
+import HomePage from './pages/HomePage'
+import NotFoundPage from './pages/NotFoundPage'
+import StatusPage from './pages/StatusPage'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="status" element={<StatusPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }
-
-export default App
