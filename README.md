@@ -4,8 +4,11 @@
 
 - Python 3.13+
 - PostgreSQL 18
+- Node.js 24+
 
 ## Rulare locală
+
+### Backend
 
 **1. Instalează dependențele**
 
@@ -34,7 +37,7 @@ Copy-Item .env.example .env
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
 
-**4. Pornește aplicația**
+**4. Pornește backend-ul**
 
 ```powershell
 python ourmoney\manage.py migrate
@@ -43,8 +46,26 @@ python ourmoney\manage.py runserver
 
 Deschide http://127.0.0.1:8000/api/v1/health/ — trebuie să vezi `{"status": "ok"}`.
 
-## Teste
+### Frontend
+
+Într-un al doilea terminal, cu backend-ul pornit:
 
 ```powershell
-pytest
+cd frontend
+npm install
+npm run dev
+```
+
+Deschide http://localhost:5173/status — trebuie să vezi „✅ API-ul funcționează.”
+
+## Teste și verificări
+
+```powershell
+pytest                 # din rădăcina repo-ului, cu .venv activ
+```
+
+```powershell
+cd frontend
+npm run lint
+npm run format:check
 ```

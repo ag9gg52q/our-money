@@ -45,3 +45,14 @@
 
 - pytest + pytest-django; testele în `ourmoney/<app>/tests/test_*.py`
 - Fiecare endpoint testat inclusiv pentru izolarea datelor între utilizatori
+
+## Frontend (React + TypeScript)
+
+- Componente: funcții în PascalCase, `export default`; numele funcției = numele fișierului (`StatusPage.tsx` → `StatusPage`)
+- Fișiere non-componentă (ex. `src/api/health.ts`): camelCase; funcții camelCase (`fetchHealth`); tipuri PascalCase (`HealthResponse`)
+- Pagini în `src/pages/`, componente reutilizabile în `src/components/`, apeluri la API în `src/api/`
+- `fetch` doar în `src/api/`; fiecare funcție verifică `response.ok` și aruncă `Error` altfel
+- Adresele API se termină cu `/`
+- Importuri fără extensie (`'../api/health'`); importurile din biblioteci separate printr-un rând gol de cele din proiect
+- Formatarea: Prettier (ghilimele simple, fără `;`, 2 spații) — `npm run format` înainte de commit; nu se formatează manual
+- Fragmentul `<>...</>` doar când se returnează mai multe elemente

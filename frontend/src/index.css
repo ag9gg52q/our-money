@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px;
+  color: blueviolet;
+}
+
+.nav {
+  display: flex;
+  gap: 30px;
+}
+
+.nav a.active {
+  font-weight: bold;
+}
+
+.content {
+  padding: 3px;
+}

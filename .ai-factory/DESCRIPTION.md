@@ -11,8 +11,10 @@ Django, iar interfața va fi o aplicație React + TypeScript separată.
 Proiectul are și un scop de **învățare**: dezvoltarea lui este drumul prin care se învață
 Python (Django) și React + TypeScript. Aplicația pornește de la zero — istoricul din Excel nu se importă.
 
-Stadiul curent: fundația backend este gata — setări din `.env`, PostgreSQL, Django REST Framework,
-endpoint-ul `GET /api/v1/health/` și teste pytest. Nu există încă aplicații de domeniu.
+Stadiul curent: fundațiile backend și frontend sunt gata. Backend: setări din `.env`, PostgreSQL,
+Django REST Framework, endpoint-ul `GET /api/v1/health/` și teste pytest. Frontend: React + TypeScript
+cu Vite, layout, routing și o pagină Status care afișează starea API-ului. Nu există încă
+funcționalități de domeniu.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
@@ -32,7 +34,8 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - **Bază de date:** PostgreSQL 18
 - **ORM:** Django ORM
 - **Configurare:** django-environ (`.env`)
-- **Frontend (planificat):** React + TypeScript (aplicație separată, consumă API-ul)
+- **Frontend:** React + TypeScript, Vite, React Router (aplicație separată în `frontend/`, consumă API-ul)
+- **Calitate cod frontend:** ESLint + Prettier
 - **Teste:** pytest + pytest-django
 - **Integrări:** import CSV extrase bancare; sursă de cursuri valutare (de stabilit)
 
@@ -41,7 +44,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - Backend-ul expune exclusiv un API REST (DRF); nu se folosesc Django templates pentru UI.
 - Proiectul Django se află în `ourmoney/` (`ourmoney/manage.py`, pachetul de setări `ourmoney/ourmoney/`).
   Aplicațiile de domeniu (ex. `accounts`, `transactions`, `budgets`, `reports`) vor fi adăugate în `ourmoney/`.
-- Frontend-ul React va trăi separat (ex. `frontend/`) și va comunica doar prin API.
+- Frontend-ul React trăiește separat, în `frontend/`, și comunică doar prin API (în dezvoltare, prin proxy-ul Vite).
 - Sumele de bani: întotdeauna `Decimal` / `DecimalField` (niciodată `float`), stocate împreună cu
   codul valutei (ISO 4217).
 - Toate datele sunt izolate per utilizator — fiecare query filtrează după utilizatorul autentificat.
