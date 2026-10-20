@@ -60,8 +60,12 @@ Deschide http://localhost:5173/status — trebuie să vezi „✅ API-ul funcți
 
 ## Teste și verificări
 
+Din rădăcina repo-ului, cu `.venv` activ:
+
 ```powershell
-pytest                 # din rădăcina repo-ului, cu .venv activ
+pytest
+ruff check ourmoney
+ruff format --check ourmoney
 ```
 
 ```powershell

@@ -13,6 +13,8 @@ Aplicație web de finanțe personale care înlocuiește un fișier Excel: cheltu
 - **Bază de date:** PostgreSQL 18
 - **Teste:** pytest + pytest-django (backend)
 - **Calitate cod frontend:** ESLint (probleme de cod) + Prettier (formatare)
+- **Calitate cod backend:** Ruff (lint + formatare)
+- **Autentificare:** sesiune Django (cookie `sessionid` + CSRF), model de utilizator propriu `users.User`
 
 ## Structura proiectului
 
@@ -22,13 +24,19 @@ our-money/
 │   ├── manage.py             # CLI Django: runserver, migrate, makemigrations, startapp
 │   ├── ourmoney/             # Pachetul de configurare al proiectului
 │   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
-│   │   ├── urls.py           # admin/ și api/v1/ → core.urls
+│   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
-│   └── core/                 # App comun: endpoint-ul de health
-│       ├── views.py          # health (GET, public)
-│       ├── urls.py           # health/
-│       └── tests/            # teste pytest
+│   ├── core/                 # App comun: endpoint-ul de health
+│   │   ├── views.py          # health (GET, public)
+│   │   ├── urls.py           # health/
+│   │   └── tests/            # teste pytest
+│   └── users/                # Utilizatori și autentificare
+│       ├── models.py         # User: id UUID, role admin/user
+│       ├── serializers.py    # validare signup/login, formatul userului
+│       ├── services.py       # register_user()
+│       ├── views.py          # csrf, signup, login, logout, me
+│       └── urls.py           # rutele /api/v1/auth/
 ├── frontend/                 # Aplicația React + TypeScript (Vite)
 │   ├── vite.config.ts        # Proxy /api → Django (127.0.0.1:8000)
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
@@ -43,6 +51,7 @@ our-money/
 ├── .env.example              # Variabilele de mediu necesare (copiază în .env)
 ├── requirements.txt          # Dependențe Python, versiuni fixate
 ├── pytest.ini                # Configurare pytest-django
+├── pyproject.toml            # Configurare Ruff
 ├── .gitattributes            # Terminații de linie LF pentru toate fișierele text
 ├── .mcp.json                 # Configurare servere MCP (github, playwright, postgres)
 ├── skills-lock.json          # Versiunile skill-urilor externe instalate
@@ -59,6 +68,9 @@ our-money/
 | `ourmoney/ourmoney/settings.py` | Configurarea proiectului (DB, aplicații, DRF, securitate) |
 | `ourmoney/ourmoney/urls.py` | Rutarea URL de nivel superior; API sub `/api/v1/` |
 | `ourmoney/core/views.py` | Endpoint-ul `GET /api/v1/health/` |
+| `ourmoney/users/models.py` | Modelul de utilizator (`AUTH_USER_MODEL = 'users.User'`) |
+| `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
+| `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |
 | `pytest.ini` | Configurarea testelor |
@@ -101,6 +113,8 @@ our-money/
 - Comenzile Django și `pytest` se rulează din rădăcina repo-ului, cu `.venv` activ:
   `python ourmoney/manage.py <comandă>`. Excepție: `startapp` se rulează din `ourmoney/`,
   ca app-ul nou să fie creat lângă `core/`.
+- Înainte de commit pe backend: `ruff format ourmoney`, `ruff check ourmoney`, `pytest` (din rădăcină).
+- Modelele referă utilizatorul prin `settings.AUTH_USER_MODEL` (ForeignKey) sau `get_user_model()`, niciodată direct `User` din Django.
 - Comenzile frontend (`npm install`, `npm run dev`, `npm run lint`, `npm run format`) se rulează din `frontend/`.
   Înainte de commit pe frontend: `npm run format`, `npm run lint`, `npx tsc -b`.
 - În frontend, `fetch` se folosește doar în `frontend/src/api/`; adresele API se termină cu `/`.

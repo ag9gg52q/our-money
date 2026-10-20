@@ -2,16 +2,16 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-19 — fundația frontend (React + TypeScript cu Vite, layout, routing, pagina Status conectată la API).
+> Ultima actualizare: 2026-10-20 — model de utilizator propriu (`users.User`, UUID, rol), API de autentificare cu sesiune, Ruff.
 
 ## Prezentare generală
 
 Proiectul are două aplicații independente care comunică doar prin API REST:
 
 - **Backend** (`ourmoney/`): proiect Django 6.1 care expune un API REST prin Django REST Framework,
-  cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). Există un singur
-  app propriu, `core`, cu endpoint-ul public `GET /api/v1/health/`. Nu există încă aplicații de
-  domeniu sau modele proprii.
+  cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
+  `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
+  API-ul de autentificare cu sesiune: signup, login, logout, me). Nu există încă aplicații de domeniu.
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite, cu un layout comun,
   routing și trei pagini (Acasă, Status, 404). Pagina Status afișează starea API-ului.
 
@@ -23,7 +23,7 @@ domeniu este o aplicație Django separată, iar în interiorul ei codul se împa
 ## Motivarea deciziei
 
 - **Tipul proiectului:** aplicație de finanțe personale (vezi `.ai-factory/DESCRIPTION.md`)
-- **Tech stack curent (backend):** Python 3.13, Django 6.1, Django REST Framework 3.18, PostgreSQL 18, pytest
+- **Tech stack curent (backend):** Python 3.13, Django 6.1, Django REST Framework 3.18, PostgreSQL 18, pytest, Ruff
 - **Tech stack curent (frontend):** React 19.3, TypeScript 6.0, Vite 8.3, React Router 8.4, ESLint 10, Prettier 3.9
 - **Factor cheie:** echipă mică și domeniu de complexitate medie → module clare, fără formalismul DDD complet
 
@@ -36,15 +36,23 @@ our-money/
 │   ├── ourmoney/                  # Pachetul de configurare (composition root)
 │   │   ├── __init__.py
 │   │   ├── settings.py            # Setări citite din .env (django-environ), DRF, PostgreSQL
-│   │   ├── urls.py                # admin/ și api/v1/ → core.urls
+│   │   ├── urls.py                # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
-│   └── core/                      # App comun (cross-cutting)
-│       ├── views.py               # health — GET, public (AllowAny)
-│       ├── urls.py                # health/ (name='health')
-│       ├── apps.py                # CoreConfig
-│       └── tests/
-│           └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
+│   ├── core/                      # App comun (cross-cutting)
+│   │   ├── views.py               # health — GET, public (AllowAny)
+│   │   ├── urls.py                # health/ (name='health')
+│   │   ├── apps.py                # CoreConfig
+│   │   └── tests/
+│   │       └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
+│   └── users/                     # Utilizatori și autentificare
+│       ├── models.py              # User (AbstractUser): id UUID, role admin/user (implicit user), is_admin
+│       ├── admin.py               # User în /admin/, cu secțiunea și filtrul „Rol”
+│       ├── serializers.py         # UserSerializer (ieșire), SignupSerializer, LoginSerializer
+│       ├── services.py            # register_user()
+│       ├── views.py               # CsrfView, SignupView, LoginView, LogoutView, MeView
+│       ├── urls.py                # csrf/, signup/, login/, logout/, me/
+│       └── migrations/            # 0001_initial — tabelul users_user
 ├── frontend/                      # Aplicația React + TypeScript (Vite)
 │   ├── index.html                 # Pagina HTML unică (<div id="root">)
 │   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000
@@ -70,6 +78,7 @@ our-money/
 ├── .env.example                   # Variabilele de mediu necesare (fără valori reale)
 ├── requirements.txt               # Dependențe directe, versiuni fixate
 ├── pytest.ini                     # Configurare pytest-django
+├── pyproject.toml                 # Configurare Ruff (lint + formatare backend)
 ├── .gitattributes                 # Toate fișierele text cu terminații LF (cerut de Prettier)
 ├── .mcp.json                      # Servere MCP: github, playwright, postgres
 ├── AGENTS.md
@@ -83,6 +92,7 @@ our-money/
 |-------|------|-------|
 | `ourmoney` (pachet de configurare) | Setări, rutare, entry points ASGI/WSGI | Setări din `.env`, DRF configurat |
 | `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health; fără modele (deci fără `models.py`, `admin.py`, `migrations/`) |
+| `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID și `role` (`admin` / `user`, implicit `user`); API de sesiune |
 
 Nu există încă aplicații de domeniu.
 
@@ -91,6 +101,13 @@ Nu există încă aplicații de domeniu.
 | Metodă | URL | Permisiune | Răspuns |
 |--------|-----|------------|---------|
 | GET | `/api/v1/health/` | public (`AllowAny`) | `200 {"status": "ok"}` |
+| GET | `/api/v1/auth/csrf/` | public | `204`, setează cookie-ul `csrftoken` |
+| POST | `/api/v1/auth/signup/` | public, cu CSRF | `201` user creat (rol `user`); `400` erori de validare. Nu pornește sesiunea |
+| POST | `/api/v1/auth/login/` | public, cu CSRF | `200` user + cookie `sessionid`; `400` date greșite |
+| POST | `/api/v1/auth/logout/` | autentificat, cu CSRF | `204` |
+| GET | `/api/v1/auth/me/` | autentificat | `200` userul curent; `403` fără sesiune |
+
+Userul este întors ca `{id, username, email, first_name, last_name, role}`.
 
 Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 
@@ -100,13 +117,19 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   `SECRET_KEY` (obligatoriu), `DEBUG` (implicit `False`), `ALLOWED_HOSTS` (listă separată prin virgulă),
   `DATABASE_URL` (obligatoriu)
 - **Baza de date:** PostgreSQL, configurată prin `DATABASES = {'default': env.db('DATABASE_URL')}`
+- **Utilizator:** `AUTH_USER_MODEL = 'users.User'`; `createsuperuser` setează rolul `admin`.
+  `is_staff` / `is_superuser` controlează doar panoul tehnic `/admin/`; rolul din aplicație este `role`
+- **Autentificare:** doar sesiune Django (`SessionAuthentication`): cookie `sessionid` + protecție
+  CSRF (cookie `csrftoken`, header `X-CSRFToken`). Signup și login au `csrf_protect` explicit
 - **DRF:** permisiunea implicită este `IsAuthenticated` — orice endpoint nou cere autentificare,
   cu excepția celor marcate explicit `AllowAny`
+- **Calitate cod backend:** Ruff (`pyproject.toml`): reguli E, F, W, I, B, UP, DJ; ghilimele simple;
+  rânduri de maximum 100 de caractere; migrațiile sunt excluse
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
-  pytest, pytest-django
-- Încă neconfigurate: CORS, logging, autentificare pentru API (sesiune/token)
+  pytest, pytest-django, ruff
+- Încă neconfigurate: CORS, logging, permisiuni pe roluri
 
 ## Frontend
 

@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["ourmoney"]
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ"]
+
+[tool.ruff.format]
+quote-style = "single"

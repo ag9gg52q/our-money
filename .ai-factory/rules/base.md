@@ -10,6 +10,7 @@
 - Constante și setări Django: `UPPER_SNAKE_CASE`
 - Aplicații Django: nume scurte, la plural, `snake_case` (ex. `accounts`, `transactions`, `budgets`)
 - Stil de string-uri: ghilimele simple `'...'`, ca în codul generat de Django
+- Formatarea și importurile backend sunt făcute de Ruff (`ruff format ourmoney`, `ruff check ourmoney --fix`) — nu se formatează manual; rânduri de maximum 100 de caractere
 
 ## Structura modulelor
 
