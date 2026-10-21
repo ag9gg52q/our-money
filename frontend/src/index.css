@@ -1,6 +1,32 @@
+:root {
+  --color-ink: #16191d;
+  --color-ink-soft: #3d434a;
+  --color-muted: #5a6169;
+  --color-line: #e2e4e0;
+  --color-input-border: #cdd1cb;
+  --color-ground: #f4f5f2;
+  --color-surface: #ffffff;
+  --color-accent: #0e6b5c;
+  --color-accent-hover: #0a4f44;
+  --color-accent-soft: #e3f1ee;
+  --color-danger: #a8381a;
+  --color-danger-soft: #f6e3dd;
+
+  --radius: 10px;
+  --font: 'Manrope Variable', system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font);
+  background: var(--color-ground);
+  color: var(--color-ink);
 }
 
 .header {
