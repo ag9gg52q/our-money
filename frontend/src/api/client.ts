@@ -51,3 +51,12 @@ export async function apiFetch<T>(
   }
   return response.json()
 }
+
+export function getErrorMessage(
+  error: unknown,
+  field: string,
+): string | undefined {
+  if (!(error instanceof ApiError)) return undefined
+  const value = error.data[field]
+  return Array.isArray(value) ? value.join(' ') : value
+}

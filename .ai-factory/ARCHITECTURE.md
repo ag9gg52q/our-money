@@ -2,7 +2,7 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-20 — model de utilizator propriu (`users.User`, UUID, rol), API de autentificare cu sesiune, Ruff.
+> Ultima actualizare: 2026-10-22 — frontend autentificare: componente de bază, client API cu CSRF, context de autentificare, paginile Login și Signup.
 
 ## Prezentare generală
 
@@ -50,28 +50,41 @@ our-money/
 │       ├── admin.py               # User în /admin/, cu secțiunea și filtrul „Rol”
 │       ├── serializers.py         # UserSerializer (ieșire), SignupSerializer, LoginSerializer
 │       ├── services.py            # register_user()
+│       ├── validators.py          # MinimumLengthValidator cu mesaje în română
 │       ├── views.py               # CsrfView, SignupView, LoginView, LogoutView, MeView
 │       ├── urls.py                # csrf/, signup/, login/, logout/, me/
 │       └── migrations/            # 0001_initial — tabelul users_user
 ├── frontend/                      # Aplicația React + TypeScript (Vite)
 │   ├── index.html                 # Pagina HTML unică (<div id="root">)
-│   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000
+│   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000 (changeOrigin: false)
 │   ├── package.json               # Dependențe + scripturi: dev, build, lint, format, format:check
 │   ├── eslint.config.js           # ESLint (recommended, TypeScript, react-hooks) + eslint-config-prettier
 │   ├── .prettierrc.json           # Stil: ghilimele simple, fără punct și virgulă
 │   ├── tsconfig*.json             # Configurare TypeScript
 │   ├── public/favicon.svg
 │   └── src/
-│       ├── main.tsx               # Punctul de intrare: montează <App /> în StrictMode
-│       ├── App.tsx                # Rutele (BrowserRouter): / → HomePage, /status → StatusPage, * → NotFoundPage
-│       ├── index.css              # Stiluri globale
+│       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
+│       ├── App.tsx                # AuthProvider + rutele: /login, /signup; în Layout: /, /status, *
+│       ├── index.css              # Variabilele de design (culori, rază, font) + stiluri globale
+│       ├── auth/
+│       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout()
+│       │   ├── AuthProvider.tsx   # La pornire: cookie CSRF + /me/; ține userul curent
+│       │   └── useAuth.ts         # Hook-ul prin care componentele citesc contextul
 │       ├── components/
-│       │   └── Layout.tsx         # Antet + meniu (NavLink) + <Outlet /> pentru pagina curentă
+│       │   ├── Layout.tsx         # Antet + meniu (NavLink) + <Outlet /> pentru pagina curentă
+│       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
+│       │   ├── Button/            # Buton primary / secondary (CSS Module)
+│       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
 │       ├── pages/
 │       │   ├── HomePage.tsx
+│       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirect la / după succes
+│       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
+│       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
 │       │   ├── StatusPage.tsx     # Apelează fetchHealth(); stări loading / ok / error
 │       │   └── NotFoundPage.tsx
 │       └── api/
+│           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
+│           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -121,6 +134,8 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   `is_staff` / `is_superuser` controlează doar panoul tehnic `/admin/`; rolul din aplicație este `role`
 - **Autentificare:** doar sesiune Django (`SessionAuthentication`): cookie `sessionid` + protecție
   CSRF (cookie `csrftoken`, header `X-CSRFToken`). Signup și login au `csrf_protect` explicit
+- **Limbă:** `LANGUAGE_CODE = 'ro'` — mesajele de validare Django/DRF sunt în română; regula de
+  lungime minimă a parolei folosește `users.validators.MinimumLengthValidator` (traducere proprie)
 - **DRF:** permisiunea implicită este `IsAuthenticated` — orice endpoint nou cere autentificare,
   cu excepția celor marcate explicit `AllowAny`
 - **Calitate cod backend:** Ruff (`pyproject.toml`): reguli E, F, W, I, B, UP, DJ; ghilimele simple;
@@ -138,6 +153,12 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - În dezvoltare rulează două servere: Django pe `127.0.0.1:8000` și Vite pe `localhost:5173`.
 - Frontend-ul face cereri la adrese relative (`/api/v1/...`); proxy-ul Vite (`vite.config.ts`) le
   trimite la Django. Browserul vorbește doar cu `:5173`, deci CORS nu este necesar.
+- Proxy-ul păstrează header-ul `Host` (`changeOrigin: false`), ca verificarea CSRF a Django
+  (`Origin` vs `Host`) să treacă — la fel ca în producție, unde frontend-ul și API-ul sunt pe același domeniu.
+- Toate cererile trec prin `apiFetch()` (`api/client.ts`): trimite cookie-urile, adaugă `X-CSRFToken`
+  la metodele care modifică date și transformă răspunsurile de eroare în `ApiError(status, data)`.
+- Starea de autentificare stă în `AuthProvider`: la pornire cere cookie-ul CSRF și `/me/`;
+  componentele o citesc prin `useAuth()`.
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 
@@ -146,8 +167,12 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 | Folder | Conține | Regulă |
 |--------|---------|--------|
 | `pages/` | O componentă per rută | Afișează date și state; nu apelează `fetch` direct |
-| `components/` | Componente reutilizabile (acum: `Layout`) | Fără apeluri la API |
-| `api/` | O funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`; verifică `response.ok` |
+| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `Button`, `TextField`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
+| `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
+| `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) | Componentele citesc userul doar prin `useAuth()` |
+
+Culorile, raza și fontul sunt variabile CSS în `index.css` (`--color-*`, `--radius`, `--font`);
+componentele le folosesc prin `var(...)`, nu valori hardcodate.
 
 ### Reguli
 

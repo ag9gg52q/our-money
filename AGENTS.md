@@ -35,6 +35,7 @@ our-money/
 │       ├── models.py         # User: id UUID, role admin/user
 │       ├── serializers.py    # validare signup/login, formatul userului
 │       ├── services.py       # register_user()
+│       ├── validators.py     # validator de parolă cu mesaje în română
 │       ├── views.py          # csrf, signup, login, logout, me
 │       └── urls.py           # rutele /api/v1/auth/
 ├── frontend/                 # Aplicația React + TypeScript (Vite)
@@ -42,10 +43,12 @@ our-money/
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
 │   └── src/
 │       ├── main.tsx          # Punctul de intrare
-│       ├── App.tsx           # Rutele aplicației
-│       ├── components/       # Componente reutilizabile (Layout)
-│       ├── pages/            # O componentă per pagină
-│       └── api/              # Funcțiile care apelează API-ul backend
+│       ├── App.tsx           # Rutele aplicației (/login, /signup, apoi paginile din Layout)
+│       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
+│       ├── auth/             # Contextul de autentificare (AuthProvider, useAuth)
+│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, Button, TextField)
+│       ├── pages/            # O componentă per pagină (Home, Login, Signup, Status, NotFound)
+│       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
 ├── .env.example              # Variabilele de mediu necesare (copiază în .env)
@@ -76,7 +79,8 @@ our-money/
 | `pytest.ini` | Configurarea testelor |
 | `frontend/src/main.tsx` | Punctul de intrare al aplicației React |
 | `frontend/src/App.tsx` | Rutele frontend-ului |
-| `frontend/src/api/` | Apelurile către API-ul backend (ex. `health.ts`) |
+| `frontend/src/api/client.ts` | `apiFetch()` — toate cererile către backend (JSON, CSRF, erori) |
+| `frontend/src/auth/AuthProvider.tsx` | Userul curent, login și logout, disponibile prin `useAuth()` |
 | `frontend/vite.config.ts` | Configurare Vite + proxy `/api` |
 
 ## Documentație
@@ -117,5 +121,6 @@ our-money/
 - Modelele referă utilizatorul prin `settings.AUTH_USER_MODEL` (ForeignKey) sau `get_user_model()`, niciodată direct `User` din Django.
 - Comenzile frontend (`npm install`, `npm run dev`, `npm run lint`, `npm run format`) se rulează din `frontend/`.
   Înainte de commit pe frontend: `npm run format`, `npm run lint`, `npx tsc -b`.
-- În frontend, `fetch` se folosește doar în `frontend/src/api/`; adresele API se termină cu `/`.
+- În frontend, cererile către backend se fac doar prin `apiFetch` din `frontend/src/api/client.ts`;
+  adresele API încep și se termină cu `/`.
 - Sumele de bani se reprezintă doar cu `Decimal` / `DecimalField`, niciodată `float`.
