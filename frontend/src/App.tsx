@@ -1,7 +1,9 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 
 import AuthProvider from './auth/AuthProvider'
-import Layout from './components/Layout'
+import Layout from './components/Layout/Layout'
+import RedirectIfAuthenticated from './auth/RedirectIfAuthenticated'
+import RequireAuth from './auth/RequireAuth'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -13,12 +15,16 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="login" element={<LoginPage />} />
-          <Route path="signup" element={<SignupPage />} />
-          <Route element={<Layout />}>
-            <Route index element={<HomePage />} />
-            <Route path="status" element={<StatusPage />} />
-            <Route path="*" element={<NotFoundPage />} />
+          <Route element={<RedirectIfAuthenticated />}>
+            <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
+          </Route>
+          <Route element={<RequireAuth />}>
+            <Route element={<Layout />}>
+              <Route index element={<HomePage />} />
+              <Route path="status" element={<StatusPage />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
           </Route>
         </Routes>
       </BrowserRouter>

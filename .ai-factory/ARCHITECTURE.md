@@ -64,20 +64,24 @@ our-money/
 │   ├── public/favicon.svg
 │   └── src/
 │       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
-│       ├── App.tsx                # AuthProvider + rutele: /login, /signup; în Layout: /, /status, *
+│       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
+│       │                          #   RequireAuth → Layout → /, /status, *
 │       ├── index.css              # Variabilele de design (culori, rază, font) + stiluri globale
 │       ├── auth/
 │       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout()
 │       │   ├── AuthProvider.tsx   # La pornire: cookie CSRF + /me/; ține userul curent
-│       │   └── useAuth.ts         # Hook-ul prin care componentele citesc contextul
+│       │   ├── useAuth.ts         # Hook-ul prin care componentele citesc contextul
+│       │   ├── RequireAuth.tsx    # Paznic: nelogat → /login (ține minte pagina cerută în state.from)
+│       │   └── RedirectIfAuthenticated.tsx  # Paznic: logat → state.from sau /
 │       ├── components/
-│       │   ├── Layout.tsx         # Antet + meniu (NavLink) + <Outlet /> pentru pagina curentă
+│       │   ├── Layout/            # Antetul după design (logo, meniu, rol, nume, Ieșire) + <Outlet />
+│       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Button/            # Buton primary / secondary (CSS Module)
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
 │       ├── pages/
 │       │   ├── HomePage.tsx
-│       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirect la / după succes
+│       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
 │       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
 │       │   ├── StatusPage.tsx     # Apelează fetchHealth(); stări loading / ok / error
@@ -134,6 +138,8 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   `is_staff` / `is_superuser` controlează doar panoul tehnic `/admin/`; rolul din aplicație este `role`
 - **Autentificare:** doar sesiune Django (`SessionAuthentication`): cookie `sessionid` + protecție
   CSRF (cookie `csrftoken`, header `X-CSRFToken`). Signup și login au `csrf_protect` explicit
+- **Durata sesiunii:** expiră după o zi de inactivitate (`SESSION_COOKIE_AGE = 86400`,
+  `SESSION_SAVE_EVERY_REQUEST = True` — fiecare cerere reînnoiește termenul)
 - **Limbă:** `LANGUAGE_CODE = 'ro'` — mesajele de validare Django/DRF sunt în română; regula de
   lungime minimă a parolei folosește `users.validators.MinimumLengthValidator` (traducere proprie)
 - **DRF:** permisiunea implicită este `IsAuthenticated` — orice endpoint nou cere autentificare,
@@ -159,6 +165,8 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   la metodele care modifică date și transformă răspunsurile de eroare în `ApiError(status, data)`.
 - Starea de autentificare stă în `AuthProvider`: la pornire cere cookie-ul CSRF și `/me/`;
   componentele o citesc prin `useAuth()`.
+- Rutele sunt protejate de paznici (`auth/RequireAuth`, `auth/RedirectIfAuthenticated`), puși ca
+  rute-layout în `App.tsx`; cât timp `isLoading` e `true` afișează `PageLoader`.
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 
@@ -167,9 +175,9 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 | Folder | Conține | Regulă |
 |--------|---------|--------|
 | `pages/` | O componentă per rută | Afișează date și state; nu apelează `fetch` direct |
-| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `Button`, `TextField`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
+| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
-| `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) | Componentele citesc userul doar prin `useAuth()` |
+| `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 
 Culorile, raza și fontul sunt variabile CSS în `index.css` (`--color-*`, `--radius`, `--font`);
 componentele le folosesc prin `var(...)`, nu valori hardcodate.

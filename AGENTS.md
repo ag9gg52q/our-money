@@ -43,10 +43,10 @@ our-money/
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
 │   └── src/
 │       ├── main.tsx          # Punctul de intrare
-│       ├── App.tsx           # Rutele aplicației (/login, /signup, apoi paginile din Layout)
+│       ├── App.tsx           # Rutele: /login, /signup (doar nelogați); restul protejate, în Layout
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
-│       ├── auth/             # Contextul de autentificare (AuthProvider, useAuth)
-│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, Button, TextField)
+│       ├── auth/             # Contextul de autentificare + paznicii RequireAuth, RedirectIfAuthenticated
+│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField)
 │       ├── pages/            # O componentă per pagină (Home, Login, Signup, Status, NotFound)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)

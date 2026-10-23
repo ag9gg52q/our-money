@@ -1,5 +1,5 @@
 import { type SubmitEvent, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useLocation } from 'react-router'
 
 import { getErrorMessage } from '../api/client'
 import { useAuth } from '../auth/useAuth'
@@ -15,7 +15,6 @@ type LoginLocationState = {
 
 export default function LoginPage() {
   const { login } = useAuth()
-  const navigate = useNavigate()
   const locationState = useLocation().state as LoginLocationState
 
   const [username, setUsername] = useState(locationState?.username ?? '')
@@ -29,7 +28,6 @@ export default function LoginPage() {
     setIsSubmitting(true)
     try {
       await login({ username, password })
-      navigate('/', { replace: true })
     } catch (caught) {
       setError(caught)
       setIsSubmitting(false)
