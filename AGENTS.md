@@ -32,7 +32,7 @@ our-money/
 │   │   ├── urls.py           # health/
 │   │   └── tests/            # teste pytest
 │   └── users/                # Utilizatori și autentificare
-│       ├── models.py         # User: id UUID, role admin/user
+│       ├── models.py         # User: id UUID, role admin/user sau gol (cont nou)
 │       ├── serializers.py    # validare signup/login, formatul userului
 │       ├── services.py       # register_user()
 │       ├── validators.py     # validator de parolă cu mesaje în română
@@ -43,11 +43,11 @@ our-money/
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
 │   └── src/
 │       ├── main.tsx          # Punctul de intrare
-│       ├── App.tsx           # Rutele: /login, /signup (doar nelogați); restul protejate, în Layout
+│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
-│       ├── auth/             # Contextul de autentificare + paznicii RequireAuth, RedirectIfAuthenticated
+│       ├── auth/             # Contextul de autentificare + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
 │       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField)
-│       ├── pages/            # O componentă per pagină (Home, Login, Signup, Status, NotFound)
+│       ├── pages/            # O componentă per pagină (Home, Start, Login, Signup, Status, NotFound)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code

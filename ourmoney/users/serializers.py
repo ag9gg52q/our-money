@@ -7,10 +7,15 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role')
         read_only_fields = fields
+
+    def get_role(self, user):
+        return user.role or None
 
 
 class SignupSerializer(serializers.ModelSerializer):

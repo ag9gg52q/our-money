@@ -6,7 +6,7 @@ export type User = {
   email: string
   first_name: string
   last_name: string
-  role: 'admin' | 'user'
+  role: 'admin' | 'user' | null
 }
 
 export type Credentials = {

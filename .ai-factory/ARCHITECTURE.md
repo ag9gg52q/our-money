@@ -2,7 +2,7 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-22 — frontend autentificare: componente de bază, client API cu CSRF, context de autentificare, paginile Login și Signup.
+> Ultima actualizare: 2026-10-23 — rol opțional (cont nou fără rol), direcționare după rol: `/start` (schiță) sau Acasă „Gospodăria noastră” (schiță).
 
 ## Prezentare generală
 
@@ -46,14 +46,14 @@ our-money/
 │   │   └── tests/
 │   │       └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
 │   └── users/                     # Utilizatori și autentificare
-│       ├── models.py              # User (AbstractUser): id UUID, role admin/user (implicit user), is_admin
+│       ├── models.py              # User (AbstractUser): id UUID, role admin/user/'' (implicit '' = fără rol), is_admin
 │       ├── admin.py               # User în /admin/, cu secțiunea și filtrul „Rol”
 │       ├── serializers.py         # UserSerializer (ieșire), SignupSerializer, LoginSerializer
 │       ├── services.py            # register_user()
 │       ├── validators.py          # MinimumLengthValidator cu mesaje în română
 │       ├── views.py               # CsrfView, SignupView, LoginView, LogoutView, MeView
 │       ├── urls.py                # csrf/, signup/, login/, logout/, me/
-│       └── migrations/            # 0001_initial — tabelul users_user
+│       └── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role
 ├── frontend/                      # Aplicația React + TypeScript (Vite)
 │   ├── index.html                 # Pagina HTML unică (<div id="root">)
 │   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000 (changeOrigin: false)
@@ -65,14 +65,17 @@ our-money/
 │   └── src/
 │       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
 │       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
-│       │                          #   RequireAuth → Layout → /, /status, *
+│       │                          #   RequireAuth → RequireNoRole → /start;
+│       │                          #   RequireAuth → RequireRole → Layout → /, /status, *
 │       ├── index.css              # Variabilele de design (culori, rază, font) + stiluri globale
 │       ├── auth/
 │       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout()
 │       │   ├── AuthProvider.tsx   # La pornire: cookie CSRF + /me/; ține userul curent
 │       │   ├── useAuth.ts         # Hook-ul prin care componentele citesc contextul
 │       │   ├── RequireAuth.tsx    # Paznic: nelogat → /login (ține minte pagina cerută în state.from)
-│       │   └── RedirectIfAuthenticated.tsx  # Paznic: logat → state.from sau /
+│       │   ├── RedirectIfAuthenticated.tsx  # Paznic: logat → state.from sau /
+│       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start
+│       │   └── RequireNoRole.tsx  # Paznic: logat cu rol → /
 │       ├── components/
 │       │   ├── Layout/            # Antetul după design (logo, meniu, rol, nume, Ieșire) + <Outlet />
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
@@ -80,7 +83,8 @@ our-money/
 │       │   ├── Button/            # Buton primary / secondary (CSS Module)
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
 │       ├── pages/
-│       │   ├── HomePage.tsx
+│       │   ├── HomePage.tsx       # Schiță: „Gospodăria noastră” (doar cu rol)
+│       │   ├── StartPage.tsx      # Schiță: creează / alătură-te unei gospodării (butoane inactive; doar fără rol)
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
 │       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
@@ -109,7 +113,7 @@ our-money/
 |-------|------|-------|
 | `ourmoney` (pachet de configurare) | Setări, rutare, entry points ASGI/WSGI | Setări din `.env`, DRF configurat |
 | `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health; fără modele (deci fără `models.py`, `admin.py`, `migrations/`) |
-| `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID și `role` (`admin` / `user`, implicit `user`); API de sesiune |
+| `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID și `role` (`admin` / `user` / gol; contul nou nu are rol); API de sesiune |
 
 Nu există încă aplicații de domeniu.
 
@@ -119,12 +123,13 @@ Nu există încă aplicații de domeniu.
 |--------|-----|------------|---------|
 | GET | `/api/v1/health/` | public (`AllowAny`) | `200 {"status": "ok"}` |
 | GET | `/api/v1/auth/csrf/` | public | `204`, setează cookie-ul `csrftoken` |
-| POST | `/api/v1/auth/signup/` | public, cu CSRF | `201` user creat (rol `user`); `400` erori de validare. Nu pornește sesiunea |
+| POST | `/api/v1/auth/signup/` | public, cu CSRF | `201` user creat (fără rol); `400` erori de validare. Nu pornește sesiunea |
 | POST | `/api/v1/auth/login/` | public, cu CSRF | `200` user + cookie `sessionid`; `400` date greșite |
 | POST | `/api/v1/auth/logout/` | autentificat, cu CSRF | `204` |
 | GET | `/api/v1/auth/me/` | autentificat | `200` userul curent; `403` fără sesiune |
 
-Userul este întors ca `{id, username, email, first_name, last_name, role}`.
+Userul este întors ca `{id, username, email, first_name, last_name, role}`; `role` este
+`"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol).
 
 Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 
@@ -167,6 +172,9 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   componentele o citesc prin `useAuth()`.
 - Rutele sunt protejate de paznici (`auth/RequireAuth`, `auth/RedirectIfAuthenticated`), puși ca
   rute-layout în `App.tsx`; cât timp `isLoading` e `true` afișează `PageLoader`.
+- Direcționarea după rol: un user logat fără rol vede doar `/start`; unul cu rol vede aplicația
+  (Layout). Gospodăriile (creare, alăturare, atribuirea rolului) nu sunt încă implementate —
+  rolul se poate seta doar din panoul tehnic `/admin/`.
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 
