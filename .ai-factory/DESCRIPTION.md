@@ -11,14 +11,19 @@ Django, iar interfața va fi o aplicație React + TypeScript separată.
 Proiectul are și un scop de **învățare**: dezvoltarea lui este drumul prin care se învață
 Python (Django) și React + TypeScript. Aplicația pornește de la zero — istoricul din Excel nu se importă.
 
-Stadiul curent: fundațiile backend și frontend sunt gata. Backend: setări din `.env`, PostgreSQL,
-Django REST Framework, endpoint-ul `GET /api/v1/health/` și teste pytest. Frontend: React + TypeScript
-cu Vite, layout, routing și o pagină Status care afișează starea API-ului. Nu există încă
-funcționalități de domeniu.
+Stadiul curent: fundațiile backend și frontend și autentificarea sunt gata. Utilizatorii își creează
+singuri contul (fără rol), se autentifică prin sesiune Django și sunt direcționați după rol: fără rol →
+pagina de început (creare / alăturare la o gospodărie, deocamdată schiță), cu rol → aplicația
+(„Gospodăria noastră”, schiță). Rolurile sunt `admin` și `user`; gospodăriile nu sunt încă implementate.
+Nu există încă funcționalități de domeniu (cheltuieli, venituri).
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
 
+- **Conturi și roluri** — înregistrare, autentificare; rolurile `admin` (gestionează setările de
+  sistem) și `user` (cheltuieli și venituri).
+- **Gospodării** — un user creează o gospodărie (devine admin) sau se alătură uneia cu un cod de
+  invitație (devine user); fiecare user face parte din cel mult o gospodărie.
 - **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre.
 - **Venituri** — înregistrarea și lista veniturilor.
 - **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective.

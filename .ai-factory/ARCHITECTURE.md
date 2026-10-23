@@ -2,7 +2,7 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-23 — rol opțional (cont nou fără rol), direcționare după rol: `/start` (schiță) sau Acasă „Gospodăria noastră” (schiță).
+> Ultima actualizare: 2026-10-23 — milestone Autentificare încheiat: rol opțional, direcționare după rol (`/start` / Acasă, schițe), teste pentru `users`.
 
 ## Prezentare generală
 
@@ -33,6 +33,7 @@ domeniu este o aplicație Django separată, iar în interiorul ei codul se împa
 our-money/
 ├── ourmoney/                      # Rădăcina proiectului Django
 │   ├── manage.py                  # CLI Django
+│   ├── conftest.py                # Fixture-uri pytest comune: api_client, csrf_client, user
 │   ├── ourmoney/                  # Pachetul de configurare (composition root)
 │   │   ├── __init__.py
 │   │   ├── settings.py            # Setări citite din .env (django-environ), DRF, PostgreSQL
@@ -53,7 +54,11 @@ our-money/
 │       ├── validators.py          # MinimumLengthValidator cu mesaje în română
 │       ├── views.py               # CsrfView, SignupView, LoginView, LogoutView, MeView
 │       ├── urls.py                # csrf/, signup/, login/, logout/, me/
-│       └── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role
+│       ├── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role
+│       └── tests/
+│           ├── test_auth_api.py   # csrf, signup, login, logout, me, CSRF obligatoriu, durata sesiunii
+│           ├── test_models.py     # rolul implicit, superuser = admin, is_admin, id UUID
+│           └── test_validators.py # mesajul de parolă în română
 ├── frontend/                      # Aplicația React + TypeScript (Vite)
 │   ├── index.html                 # Pagina HTML unică (<div id="root">)
 │   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000 (changeOrigin: false)
@@ -152,7 +157,9 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Calitate cod backend:** Ruff (`pyproject.toml`): reguli E, F, W, I, B, UP, DJ; ghilimele simple;
   rânduri de maximum 100 de caractere; migrațiile sunt excluse
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
-  `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`
+  `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
+  în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
+  `user` (cont fără rol, parola `PASSWORD`). 28 de teste (`core` + `users`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri

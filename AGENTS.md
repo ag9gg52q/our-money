@@ -22,6 +22,7 @@ Aplicație web de finanțe personale care înlocuiește un fișier Excel: cheltu
 our-money/
 ├── ourmoney/                 # Proiectul Django (conține manage.py)
 │   ├── manage.py             # CLI Django: runserver, migrate, makemigrations, startapp
+│   ├── conftest.py           # Fixture-uri pytest comune (api_client, csrf_client, user)
 │   ├── ourmoney/             # Pachetul de configurare al proiectului
 │   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
 │   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls
@@ -37,7 +38,8 @@ our-money/
 │       ├── services.py       # register_user()
 │       ├── validators.py     # validator de parolă cu mesaje în română
 │       ├── views.py          # csrf, signup, login, logout, me
-│       └── urls.py           # rutele /api/v1/auth/
+│       ├── urls.py           # rutele /api/v1/auth/
+│       └── tests/            # teste pytest: API de autentificare, model, validator
 ├── frontend/                 # Aplicația React + TypeScript (Vite)
 │   ├── vite.config.ts        # Proxy /api → Django (127.0.0.1:8000)
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
