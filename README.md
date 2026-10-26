@@ -56,12 +56,19 @@ npm install
 npm run dev
 ```
 
-Deschide http://localhost:5173/status — trebuie să vezi „✅ API-ul funcționează.”
+Deschide http://localhost:5173 — apare pagina de autentificare.
+
+- **Cont nou:** „Creează unul” → după înregistrare te autentifici; contul nou nu are rol, deci ajungi pe pagina de început.
+- **Cont cu acces la aplicație:** rulează `python ourmoney\manage.py createsuperuser` (primește rolul de administrator) și autentifică-te cu el.
 
 ## Teste și verificări
 
+Din rădăcina repo-ului, cu `.venv` activ:
+
 ```powershell
-pytest                 # din rădăcina repo-ului, cu .venv activ
+pytest
+ruff check ourmoney
+ruff format --check ourmoney
 ```
 
 ```powershell

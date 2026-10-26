@@ -10,6 +10,7 @@
 - Constante și setări Django: `UPPER_SNAKE_CASE`
 - Aplicații Django: nume scurte, la plural, `snake_case` (ex. `accounts`, `transactions`, `budgets`)
 - Stil de string-uri: ghilimele simple `'...'`, ca în codul generat de Django
+- Formatarea și importurile backend sunt făcute de Ruff (`ruff format ourmoney`, `ruff check ourmoney --fix`) — nu se formatează manual; rânduri de maximum 100 de caractere
 
 ## Structura modulelor
 
@@ -44,7 +45,10 @@
 ## Teste
 
 - pytest + pytest-django; testele în `ourmoney/<app>/tests/test_*.py`
-- Fiecare endpoint testat inclusiv pentru izolarea datelor între utilizatori
+- Fiecare endpoint de domeniu testat inclusiv pentru izolarea datelor între gospodării
+- Fixture-urile comune stau în `ourmoney/conftest.py`; pentru endpoint-uri care modifică date se testează
+  și cu `csrf_client` (verificarea CSRF activă), nu doar cu `force_authenticate`
+- Testele care ating baza de date folosesc `pytestmark = pytest.mark.django_db`; URL-urile se obțin cu `reverse()`
 
 ## Frontend (React + TypeScript)
 

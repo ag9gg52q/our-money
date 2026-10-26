@@ -1,0 +1,109 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.brand {
+  flex: 1 1 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 56px;
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.logoMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  font-size: 15px;
+}
+
+.tagline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 460px;
+}
+
+.taglineTitle {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.taglineText {
+  margin: 0;
+  color: #c9cdd2;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.copyright {
+  margin: 0;
+  color: #aeb4ba;
+  font-size: 13px;
+}
+
+.main {
+  flex: 1 1 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 15px;
+}
+
+.footer {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--color-accent);
+  font-weight: 700;
+}

@@ -2,18 +2,20 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-19 — fundația frontend (React + TypeScript cu Vite, layout, routing, pagina Status conectată la API).
+> Ultima actualizare: 2026-10-23 — milestone Autentificare încheiat: rol opțional, direcționare după rol (`/start` / Acasă, schițe), teste pentru `users`.
 
 ## Prezentare generală
 
 Proiectul are două aplicații independente care comunică doar prin API REST:
 
 - **Backend** (`ourmoney/`): proiect Django 6.1 care expune un API REST prin Django REST Framework,
-  cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). Există un singur
-  app propriu, `core`, cu endpoint-ul public `GET /api/v1/health/`. Nu există încă aplicații de
-  domeniu sau modele proprii.
-- **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite, cu un layout comun,
-  routing și trei pagini (Acasă, Status, 404). Pagina Status afișează starea API-ului.
+  cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
+  `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
+  API-ul de autentificare cu sesiune: signup, login, logout, me). Nu există încă aplicații de domeniu.
+- **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
+  (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
+  aplicația cu antet pentru cele cu rol), plus paginile Acasă („Gospodăria noastră”, schiță), Status
+  și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -23,7 +25,7 @@ domeniu este o aplicație Django separată, iar în interiorul ei codul se împa
 ## Motivarea deciziei
 
 - **Tipul proiectului:** aplicație de finanțe personale (vezi `.ai-factory/DESCRIPTION.md`)
-- **Tech stack curent (backend):** Python 3.13, Django 6.1, Django REST Framework 3.18, PostgreSQL 18, pytest
+- **Tech stack curent (backend):** Python 3.13, Django 6.1, Django REST Framework 3.18, PostgreSQL 18, pytest, Ruff
 - **Tech stack curent (frontend):** React 19.3, TypeScript 6.0, Vite 8.3, React Router 8.4, ESLint 10, Prettier 3.9
 - **Factor cheie:** echipă mică și domeniu de complexitate medie → module clare, fără formalismul DDD complet
 
@@ -33,43 +35,78 @@ domeniu este o aplicație Django separată, iar în interiorul ei codul se împa
 our-money/
 ├── ourmoney/                      # Rădăcina proiectului Django
 │   ├── manage.py                  # CLI Django
+│   ├── conftest.py                # Fixture-uri pytest comune: api_client, csrf_client, user
 │   ├── ourmoney/                  # Pachetul de configurare (composition root)
 │   │   ├── __init__.py
 │   │   ├── settings.py            # Setări citite din .env (django-environ), DRF, PostgreSQL
-│   │   ├── urls.py                # admin/ și api/v1/ → core.urls
+│   │   ├── urls.py                # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
-│   └── core/                      # App comun (cross-cutting)
-│       ├── views.py               # health — GET, public (AllowAny)
-│       ├── urls.py                # health/ (name='health')
-│       ├── apps.py                # CoreConfig
+│   ├── core/                      # App comun (cross-cutting)
+│   │   ├── views.py               # health — GET, public (AllowAny)
+│   │   ├── urls.py                # health/ (name='health')
+│   │   ├── apps.py                # CoreConfig
+│   │   └── tests/
+│   │       └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
+│   └── users/                     # Utilizatori și autentificare
+│       ├── models.py              # User (AbstractUser): id UUID, role admin/user/'' (implicit '' = fără rol), is_admin
+│       ├── admin.py               # User în /admin/, cu secțiunea și filtrul „Rol”
+│       ├── serializers.py         # UserSerializer (ieșire), SignupSerializer, LoginSerializer
+│       ├── services.py            # register_user()
+│       ├── validators.py          # MinimumLengthValidator cu mesaje în română
+│       ├── views.py               # CsrfView, SignupView, LoginView, LogoutView, MeView
+│       ├── urls.py                # csrf/, signup/, login/, logout/, me/
+│       ├── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role
 │       └── tests/
-│           └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
+│           ├── test_auth_api.py   # csrf, signup, login, logout, me, CSRF obligatoriu, durata sesiunii
+│           ├── test_models.py     # rolul implicit, superuser = admin, is_admin, id UUID
+│           └── test_validators.py # mesajul de parolă în română
 ├── frontend/                      # Aplicația React + TypeScript (Vite)
 │   ├── index.html                 # Pagina HTML unică (<div id="root">)
-│   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000
+│   ├── vite.config.ts             # Plugin React + proxy /api → http://127.0.0.1:8000 (changeOrigin: false)
 │   ├── package.json               # Dependențe + scripturi: dev, build, lint, format, format:check
 │   ├── eslint.config.js           # ESLint (recommended, TypeScript, react-hooks) + eslint-config-prettier
 │   ├── .prettierrc.json           # Stil: ghilimele simple, fără punct și virgulă
 │   ├── tsconfig*.json             # Configurare TypeScript
 │   ├── public/favicon.svg
 │   └── src/
-│       ├── main.tsx               # Punctul de intrare: montează <App /> în StrictMode
-│       ├── App.tsx                # Rutele (BrowserRouter): / → HomePage, /status → StatusPage, * → NotFoundPage
-│       ├── index.css              # Stiluri globale
+│       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
+│       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
+│       │                          #   RequireAuth → RequireNoRole → /start;
+│       │                          #   RequireAuth → RequireRole → Layout → /, /status, *
+│       ├── index.css              # Variabilele de design (culori, rază, font) + stiluri globale
+│       ├── auth/
+│       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout()
+│       │   ├── AuthProvider.tsx   # La pornire: cookie CSRF + /me/; ține userul curent
+│       │   ├── useAuth.ts         # Hook-ul prin care componentele citesc contextul
+│       │   ├── RequireAuth.tsx    # Paznic: nelogat → /login (ține minte pagina cerută în state.from)
+│       │   ├── RedirectIfAuthenticated.tsx  # Paznic: logat → state.from sau /
+│       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start
+│       │   └── RequireNoRole.tsx  # Paznic: logat cu rol → /
 │       ├── components/
-│       │   └── Layout.tsx         # Antet + meniu (NavLink) + <Outlet /> pentru pagina curentă
+│       │   ├── Layout/            # Antetul după design (logo, meniu, rol, nume, Ieșire) + <Outlet />
+│       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
+│       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
+│       │   ├── Button/            # Buton primary / secondary (CSS Module)
+│       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
 │       ├── pages/
-│       │   ├── HomePage.tsx
+│       │   ├── HomePage.tsx       # Schiță: „Gospodăria noastră” (doar cu rol)
+│       │   ├── StartPage.tsx      # Schiță: creează / alătură-te unei gospodării (butoane inactive; doar fără rol)
+│       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
+│       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
+│       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
 │       │   ├── StatusPage.tsx     # Apelează fetchHealth(); stări loading / ok / error
 │       │   └── NotFoundPage.tsx
 │       └── api/
+│           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
+│           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
 ├── .env.example                   # Variabilele de mediu necesare (fără valori reale)
 ├── requirements.txt               # Dependențe directe, versiuni fixate
 ├── pytest.ini                     # Configurare pytest-django
+├── pyproject.toml                 # Configurare Ruff (lint + formatare backend)
 ├── .gitattributes                 # Toate fișierele text cu terminații LF (cerut de Prettier)
 ├── .mcp.json                      # Servere MCP: github, playwright, postgres
 ├── AGENTS.md
@@ -83,6 +120,7 @@ our-money/
 |-------|------|-------|
 | `ourmoney` (pachet de configurare) | Setări, rutare, entry points ASGI/WSGI | Setări din `.env`, DRF configurat |
 | `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health; fără modele (deci fără `models.py`, `admin.py`, `migrations/`) |
+| `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID și `role` (`admin` / `user` / gol; contul nou nu are rol); API de sesiune |
 
 Nu există încă aplicații de domeniu.
 
@@ -91,6 +129,14 @@ Nu există încă aplicații de domeniu.
 | Metodă | URL | Permisiune | Răspuns |
 |--------|-----|------------|---------|
 | GET | `/api/v1/health/` | public (`AllowAny`) | `200 {"status": "ok"}` |
+| GET | `/api/v1/auth/csrf/` | public | `204`, setează cookie-ul `csrftoken` |
+| POST | `/api/v1/auth/signup/` | public, cu CSRF | `201` user creat (fără rol); `400` erori de validare. Nu pornește sesiunea |
+| POST | `/api/v1/auth/login/` | public, cu CSRF | `200` user + cookie `sessionid`; `400` date greșite |
+| POST | `/api/v1/auth/logout/` | autentificat, cu CSRF | `204` |
+| GET | `/api/v1/auth/me/` | autentificat | `200` userul curent; `403` fără sesiune |
+
+Userul este întors ca `{id, username, email, first_name, last_name, role}`; `role` este
+`"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol).
 
 Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 
@@ -100,13 +146,25 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   `SECRET_KEY` (obligatoriu), `DEBUG` (implicit `False`), `ALLOWED_HOSTS` (listă separată prin virgulă),
   `DATABASE_URL` (obligatoriu)
 - **Baza de date:** PostgreSQL, configurată prin `DATABASES = {'default': env.db('DATABASE_URL')}`
+- **Utilizator:** `AUTH_USER_MODEL = 'users.User'`; `createsuperuser` setează rolul `admin`.
+  `is_staff` / `is_superuser` controlează doar panoul tehnic `/admin/`; rolul din aplicație este `role`
+- **Autentificare:** doar sesiune Django (`SessionAuthentication`): cookie `sessionid` + protecție
+  CSRF (cookie `csrftoken`, header `X-CSRFToken`). Signup și login au `csrf_protect` explicit
+- **Durata sesiunii:** expiră după o zi de inactivitate (`SESSION_COOKIE_AGE = 86400`,
+  `SESSION_SAVE_EVERY_REQUEST = True` — fiecare cerere reînnoiește termenul)
+- **Limbă:** `LANGUAGE_CODE = 'ro'` — mesajele de validare Django/DRF sunt în română; regula de
+  lungime minimă a parolei folosește `users.validators.MinimumLengthValidator` (traducere proprie)
 - **DRF:** permisiunea implicită este `IsAuthenticated` — orice endpoint nou cere autentificare,
   cu excepția celor marcate explicit `AllowAny`
+- **Calitate cod backend:** Ruff (`pyproject.toml`): reguli E, F, W, I, B, UP, DJ; ghilimele simple;
+  rânduri de maximum 100 de caractere; migrațiile sunt excluse
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
-  `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`
+  `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
+  în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
+  `user` (cont fără rol, parola `PASSWORD`). 28 de teste (`core` + `users`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
-  pytest, pytest-django
-- Încă neconfigurate: CORS, logging, autentificare pentru API (sesiune/token)
+  pytest, pytest-django, ruff
+- Încă neconfigurate: CORS, logging, permisiuni pe roluri
 
 ## Frontend
 
@@ -115,6 +173,17 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - În dezvoltare rulează două servere: Django pe `127.0.0.1:8000` și Vite pe `localhost:5173`.
 - Frontend-ul face cereri la adrese relative (`/api/v1/...`); proxy-ul Vite (`vite.config.ts`) le
   trimite la Django. Browserul vorbește doar cu `:5173`, deci CORS nu este necesar.
+- Proxy-ul păstrează header-ul `Host` (`changeOrigin: false`), ca verificarea CSRF a Django
+  (`Origin` vs `Host`) să treacă — la fel ca în producție, unde frontend-ul și API-ul sunt pe același domeniu.
+- Toate cererile trec prin `apiFetch()` (`api/client.ts`): trimite cookie-urile, adaugă `X-CSRFToken`
+  la metodele care modifică date și transformă răspunsurile de eroare în `ApiError(status, data)`.
+- Starea de autentificare stă în `AuthProvider`: la pornire cere cookie-ul CSRF și `/me/`;
+  componentele o citesc prin `useAuth()`.
+- Rutele sunt protejate de paznici (`auth/RequireAuth`, `auth/RedirectIfAuthenticated`), puși ca
+  rute-layout în `App.tsx`; cât timp `isLoading` e `true` afișează `PageLoader`.
+- Direcționarea după rol: un user logat fără rol vede doar `/start`; unul cu rol vede aplicația
+  (Layout). Gospodăriile (creare, alăturare, atribuirea rolului) nu sunt încă implementate —
+  rolul se poate seta doar din panoul tehnic `/admin/`.
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 
@@ -123,8 +192,12 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 | Folder | Conține | Regulă |
 |--------|---------|--------|
 | `pages/` | O componentă per rută | Afișează date și state; nu apelează `fetch` direct |
-| `components/` | Componente reutilizabile (acum: `Layout`) | Fără apeluri la API |
-| `api/` | O funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`; verifică `response.ok` |
+| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
+| `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
+| `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
+
+Culorile, raza și fontul sunt variabile CSS în `index.css` (`--color-*`, `--radius`, `--font`);
+componentele le folosesc prin `var(...)`, nu valori hardcodate.
 
 ### Reguli
 
@@ -159,7 +232,7 @@ Se aplică fiecărei aplicații Django adăugate în `ourmoney/`:
 ## Principii cheie
 
 1. **Banii sunt `Decimal` + cod de valută (ISO 4217).** Niciodată `float`.
-2. **Izolarea datelor per utilizator.** Orice query pe date de utilizator filtrează după utilizatorul autentificat.
+2. **Izolarea datelor pe gospodărie.** Orice query pe date de domeniu filtrează după gospodăria utilizatorului autentificat (se aplică din milestone-ul Gospodării).
 3. **Modele bogate, services subțiri.** Invariantele trăiesc în modele.
 4. **Scrierile pe mai multe rânduri sunt atomice** (`transaction.atomic()`).
 5. **Endpoint-urile sunt private implicit.** Doar endpoint-urile marcate explicit `AllowAny` sunt publice.
@@ -170,7 +243,7 @@ Se aplică fiecărei aplicații Django adăugate în `ourmoney/`:
 - ❌ Logică de business în views sau serializers
 - ❌ Modele anemice cu toate regulile în services
 - ❌ `float` pentru sume de bani
-- ❌ Query-uri pe date de utilizator nefiltrate după utilizator
+- ❌ Query-uri pe date de domeniu nefiltrate după gospodăria utilizatorului
 - ❌ Import circular între aplicații
 - ❌ `fetch` direct în componente, în loc de o funcție din `frontend/src/api/`
 - ❌ Documentarea în acest fișier a unor module care nu există încă în cod
