@@ -2,7 +2,7 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-23 — milestone Autentificare încheiat: rol opțional, direcționare după rol (`/start` / Acasă, schițe), teste pentru `users`.
+> Ultima actualizare: 2026-10-26 — entitatea `Household` (app `households`), legătura `User.household`, golirea rolului la ștergerea gospodăriei.
 
 ## Prezentare generală
 
@@ -11,7 +11,8 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
 - **Backend** (`ourmoney/`): proiect Django 6.1 care expune un API REST prin Django REST Framework,
   cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
   `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
-  API-ul de autentificare cu sesiune: signup, login, logout, me). Nu există încă aplicații de domeniu.
+  API-ul de autentificare cu sesiune: signup, login, logout, me) și `households` (modelul
+  `Household`, fără API încă). Nu există încă aplicații de domeniu.
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), plus paginile Acasă („Gospodăria noastră”, schiță), Status
@@ -48,15 +49,24 @@ our-money/
 │   │   ├── apps.py                # CoreConfig
 │   │   └── tests/
 │   │       └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
+│   ├── households/                # Gospodării
+│   │   ├── models.py              # Household: id UUID, name, invite_code unic (XXXX-XXXX), created_at;
+│   │   │                          #   generate_invite_code() cu `secrets`, fără 0/O/1/I/L
+│   │   ├── signals.py             # pre_delete: membrii gospodăriei șterse își pierd rolul
+│   │   ├── apps.py                # ready() înregistrează signal-urile
+│   │   ├── migrations/            # 0001_initial — tabelul households_household
+│   │   └── tests/
+│   │       └── test_models.py     # formatul codului, unicitate, legătura cu userii, ștergerea
 │   └── users/                     # Utilizatori și autentificare
-│       ├── models.py              # User (AbstractUser): id UUID, role admin/user/'' (implicit '' = fără rol), is_admin
+│       ├── models.py              # User (AbstractUser): id UUID, role admin/user/'' (implicit '' = fără rol),
+│       │                          #   household (FK opțional, SET_NULL, related_name='members'), is_admin
 │       ├── admin.py               # User în /admin/, cu secțiunea și filtrul „Rol”
 │       ├── serializers.py         # UserSerializer (ieșire), SignupSerializer, LoginSerializer
 │       ├── services.py            # register_user()
 │       ├── validators.py          # MinimumLengthValidator cu mesaje în română
 │       ├── views.py               # CsrfView, SignupView, LoginView, LogoutView, MeView
 │       ├── urls.py                # csrf/, signup/, login/, logout/, me/
-│       ├── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role
+│       ├── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role, 0003_user_household
 │       └── tests/
 │           ├── test_auth_api.py   # csrf, signup, login, logout, me, CSRF obligatoriu, durata sesiunii
 │           ├── test_models.py     # rolul implicit, superuser = admin, is_admin, id UUID
@@ -120,7 +130,13 @@ our-money/
 |-------|------|-------|
 | `ourmoney` (pachet de configurare) | Setări, rutare, entry points ASGI/WSGI | Setări din `.env`, DRF configurat |
 | `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health; fără modele (deci fără `models.py`, `admin.py`, `migrations/`) |
-| `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID și `role` (`admin` / `user` / gol; contul nou nu are rol); API de sesiune |
+| `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID, `role` (`admin` / `user` / gol; contul nou nu are rol) și `household` (opțional); API de sesiune |
+| `households` | Gospodăriile | Modelul `Household` cu cod de invitație unic; fără API și fără interfață încă |
+
+**Gospodării:** un user face parte din cel mult o gospodărie (`User.household`, `ForeignKey`).
+La ștergerea unei gospodării, membrii rămân fără gospodărie (`on_delete=SET_NULL`) și își pierd
+rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la orice ștergere — model,
+`queryset.delete()`, panoul tehnic).
 
 Nu există încă aplicații de domeniu.
 
@@ -161,7 +177,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 28 de teste (`core` + `users`)
+  `user` (cont fără rol, parola `PASSWORD`). 33 de teste (`core`, `users`, `households`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -182,8 +198,9 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - Rutele sunt protejate de paznici (`auth/RequireAuth`, `auth/RedirectIfAuthenticated`), puși ca
   rute-layout în `App.tsx`; cât timp `isLoading` e `true` afișează `PageLoader`.
 - Direcționarea după rol: un user logat fără rol vede doar `/start`; unul cu rol vede aplicația
-  (Layout). Gospodăriile (creare, alăturare, atribuirea rolului) nu sunt încă implementate —
-  rolul se poate seta doar din panoul tehnic `/admin/`.
+  (Layout). Crearea și alăturarea la o gospodărie (care atribuie rolul) nu sunt încă implementate —
+  modelul `Household` există, iar rolul se poate seta deocamdată doar din panoul tehnic `/admin/`
+  (`users/admin.py`, care va fi eliminat când atribuirea rolului se face din aplicație).
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 

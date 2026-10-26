@@ -32,8 +32,12 @@ our-money/
 │   │   ├── views.py          # health (GET, public)
 │   │   ├── urls.py           # health/
 │   │   └── tests/            # teste pytest
+│   ├── households/           # Gospodării
+│   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
+│   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
+│   │   └── tests/            # teste pytest pentru model
 │   └── users/                # Utilizatori și autentificare
-│       ├── models.py         # User: id UUID, role admin/user sau gol (cont nou)
+│       ├── models.py         # User: id UUID, role admin/user sau gol (cont nou), household (opțional)
 │       ├── serializers.py    # validare signup/login, formatul userului
 │       ├── services.py       # register_user()
 │       ├── validators.py     # validator de parolă cu mesaje în română
@@ -74,6 +78,7 @@ our-money/
 | `ourmoney/ourmoney/urls.py` | Rutarea URL de nivel superior; API sub `/api/v1/` |
 | `ourmoney/core/views.py` | Endpoint-ul `GET /api/v1/health/` |
 | `ourmoney/users/models.py` | Modelul de utilizator (`AUTH_USER_MODEL = 'users.User'`) |
+| `ourmoney/households/models.py` | Modelul `Household` și generarea codului de invitație |
 | `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
@@ -125,4 +130,5 @@ our-money/
   Înainte de commit pe frontend: `npm run format`, `npm run lint`, `npx tsc -b`.
 - În frontend, cererile către backend se fac doar prin `apiFetch` din `frontend/src/api/client.ts`;
   adresele API încep și se termină cu `/`.
+- Nu se adaugă configurări pentru panoul tehnic Django (`admin.py`); tot ce e configurabil se face din aplicație.
 - Sumele de bani se reprezintă doar cu `Decimal` / `DecimalField`, niciodată `float`.

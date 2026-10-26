@@ -17,7 +17,13 @@ class User(AbstractUser):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(max_length=10, choices=Role.choices, blank=True, default='')
-
+    household = models.ForeignKey(
+        'households.Household',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='members',
+    )
     objects = CustomUserManager()
 
     @property
