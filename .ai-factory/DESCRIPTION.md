@@ -40,7 +40,8 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - **ORM:** Django ORM
 - **Configurare:** django-environ (`.env`)
 - **Frontend:** React + TypeScript, Vite, React Router (aplicație separată în `frontend/`, consumă API-ul)
-- **Calitate cod frontend:** ESLint + Prettier
+- **Autentificare:** sesiune Django (cookie `sessionid` + CSRF), model de utilizator propriu cu rol
+- **Calitate cod:** Ruff (backend), ESLint + Prettier (frontend)
 - **Teste:** pytest + pytest-django
 - **Integrări:** import CSV extrase bancare; sursă de cursuri valutare (de stabilit)
 
@@ -52,7 +53,8 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - Frontend-ul React trăiește separat, în `frontend/`, și comunică doar prin API (în dezvoltare, prin proxy-ul Vite).
 - Sumele de bani: întotdeauna `Decimal` / `DecimalField` (niciodată `float`), stocate împreună cu
   codul valutei (ISO 4217).
-- Toate datele sunt izolate per utilizator — fiecare query filtrează după utilizatorul autentificat.
+- Datele vor fi izolate pe gospodărie — fiecare query va filtra după gospodăria utilizatorului
+  autentificat (gospodăriile nu sunt încă implementate).
 
 ## Arhitectură
 

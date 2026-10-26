@@ -12,8 +12,10 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
   `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
   API-ul de autentificare cu sesiune: signup, login, logout, me). Nu există încă aplicații de domeniu.
-- **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite, cu un layout comun,
-  routing și trei pagini (Acasă, Status, 404). Pagina Status afișează starea API-ului.
+- **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
+  (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
+  aplicația cu antet pentru cele cu rol), plus paginile Acasă („Gospodăria noastră”, schiță), Status
+  și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -230,7 +232,7 @@ Se aplică fiecărei aplicații Django adăugate în `ourmoney/`:
 ## Principii cheie
 
 1. **Banii sunt `Decimal` + cod de valută (ISO 4217).** Niciodată `float`.
-2. **Izolarea datelor per utilizator.** Orice query pe date de utilizator filtrează după utilizatorul autentificat.
+2. **Izolarea datelor pe gospodărie.** Orice query pe date de domeniu filtrează după gospodăria utilizatorului autentificat (se aplică din milestone-ul Gospodării).
 3. **Modele bogate, services subțiri.** Invariantele trăiesc în modele.
 4. **Scrierile pe mai multe rânduri sunt atomice** (`transaction.atomic()`).
 5. **Endpoint-urile sunt private implicit.** Doar endpoint-urile marcate explicit `AllowAny` sunt publice.
@@ -241,7 +243,7 @@ Se aplică fiecărei aplicații Django adăugate în `ourmoney/`:
 - ❌ Logică de business în views sau serializers
 - ❌ Modele anemice cu toate regulile în services
 - ❌ `float` pentru sume de bani
-- ❌ Query-uri pe date de utilizator nefiltrate după utilizator
+- ❌ Query-uri pe date de domeniu nefiltrate după gospodăria utilizatorului
 - ❌ Import circular între aplicații
 - ❌ `fetch` direct în componente, în loc de o funcție din `frontend/src/api/`
 - ❌ Documentarea în acest fișier a unor module care nu există încă în cod

@@ -45,7 +45,7 @@
 ## Teste
 
 - pytest + pytest-django; testele în `ourmoney/<app>/tests/test_*.py`
-- Fiecare endpoint testat inclusiv pentru izolarea datelor între utilizatori
+- Fiecare endpoint de domeniu testat inclusiv pentru izolarea datelor între gospodării
 - Fixture-urile comune stau în `ourmoney/conftest.py`; pentru endpoint-uri care modifică date se testează
   și cu `csrf_client` (verificarea CSRF activă), nu doar cu `force_authenticate`
 - Testele care ating baza de date folosesc `pytestmark = pytest.mark.django_db`; URL-urile se obțin cu `reverse()`
