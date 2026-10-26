@@ -25,7 +25,8 @@ our-money/
 │   ├── conftest.py           # Fixture-uri pytest comune (api_client, csrf_client, user)
 │   ├── ourmoney/             # Pachetul de configurare al proiectului
 │   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
-│   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls
+│   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
+│   │   │                     #   api/v1/households/ → households.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
 │   ├── core/                 # App comun: endpoint-ul de health
@@ -34,8 +35,12 @@ our-money/
 │   │   └── tests/            # teste pytest
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
+│   │   ├── serializers.py    # validarea creării (nume; userul nu are deja gospodărie)
+│   │   ├── services.py       # create_household() — userul devine admin
+│   │   ├── views.py          # creare gospodărie (POST)
+│   │   ├── urls.py           # rutele /api/v1/households/
 │   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
-│   │   └── tests/            # teste pytest pentru model
+│   │   └── tests/            # teste pytest: model, API
 │   └── users/                # Utilizatori și autentificare
 │       ├── models.py         # User: id UUID, role admin/user sau gol (cont nou), household (opțional)
 │       ├── serializers.py    # validare signup/login, formatul userului
@@ -80,6 +85,7 @@ our-money/
 | `ourmoney/users/models.py` | Modelul de utilizator (`AUTH_USER_MODEL = 'users.User'`) |
 | `ourmoney/households/models.py` | Modelul `Household` și generarea codului de invitație |
 | `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
+| `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare) |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |

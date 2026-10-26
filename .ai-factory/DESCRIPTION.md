@@ -14,8 +14,8 @@ Python (Django) și React + TypeScript. Aplicația pornește de la zero — isto
 Stadiul curent: fundațiile backend și frontend și autentificarea sunt gata. Utilizatorii își creează
 singuri contul (fără rol), se autentifică prin sesiune Django și sunt direcționați după rol: fără rol →
 pagina de început (creare / alăturare la o gospodărie, deocamdată schiță), cu rol → aplicația
-(„Gospodăria noastră”, schiță). Rolurile sunt `admin` și `user`. Modelul de gospodărie există (cu cod de invitație), dar
-crearea și alăturarea din aplicație nu sunt încă implementate.
+(„Gospodăria noastră”, schiță). Rolurile sunt `admin` și `user`. Modelul de gospodărie există (cu cod de invitație), iar
+API-ul de creare (creatorul devine admin) e gata; interfața de creare și alăturarea nu sunt încă implementate.
 Nu există încă funcționalități de domeniu (cheltuieli, venituri).
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
@@ -55,7 +55,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - Sumele de bani: întotdeauna `Decimal` / `DecimalField` (niciodată `float`), stocate împreună cu
   codul valutei (ISO 4217).
 - Datele vor fi izolate pe gospodărie — fiecare query va filtra după gospodăria utilizatorului
-  autentificat (gospodăriile nu sunt încă implementate).
+  autentificat.
 
 ## Arhitectură
 
