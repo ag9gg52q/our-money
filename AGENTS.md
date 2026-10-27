@@ -54,11 +54,12 @@ our-money/
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
 │   └── src/
 │       ├── main.tsx          # Punctul de intrare
-│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout
+│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout; /settings doar admin
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
-│       ├── auth/             # Contextul de autentificare + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
-│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField)
-│       ├── pages/            # O componentă per pagină (Home, Start, Login, Signup, Status, NotFound)
+│       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
+│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Modal)
+│       ├── households/       # Modalul de creare a gospodăriei
+│       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
@@ -93,7 +94,7 @@ our-money/
 | `frontend/src/main.tsx` | Punctul de intrare al aplicației React |
 | `frontend/src/App.tsx` | Rutele frontend-ului |
 | `frontend/src/api/client.ts` | `apiFetch()` — toate cererile către backend (JSON, CSRF, erori) |
-| `frontend/src/auth/AuthProvider.tsx` | Userul curent, login și logout, disponibile prin `useAuth()` |
+| `frontend/src/auth/AuthProvider.tsx` | Userul curent, login, logout și refreshUser, disponibile prin `useAuth()` |
 | `frontend/vite.config.ts` | Configurare Vite + proxy `/api` |
 
 ## Documentație

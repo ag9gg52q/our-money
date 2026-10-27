@@ -1,4 +1,5 @@
 import { ApiError, apiFetch } from './client'
+import type { Household } from './households'
 
 export type User = {
   id: string
@@ -7,6 +8,7 @@ export type User = {
   first_name: string
   last_name: string
   role: 'admin' | 'user' | null
+  household: Household | null
 }
 
 export type Credentials = {

@@ -17,13 +17,18 @@ export default function Layout() {
       <header className={styles.header}>
         <NavLink to="/" className={styles.brand}>
           <span className={styles.logoMark}>OM</span>
-          Our Money
+          Our Money --
+          {user?.household && <span>{user.household.name}</span>}
         </NavLink>
+
         <nav className={styles.nav} aria-label="Navigare principală">
           <NavLink to="/" end>
             Acasă
           </NavLink>
           <NavLink to="/status">Status</NavLink>
+          {user?.role === 'admin' && (
+            <NavLink to="/settings">Setări sistem</NavLink>
+          )}
         </nav>
         <div className={styles.user}>
           <span className={styles.roleBadge}>

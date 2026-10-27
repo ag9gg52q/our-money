@@ -2,7 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-26 — API-ul de creare a gospodăriei (`POST /api/v1/households/`) și gospodăria în `/me/`.
+> Ultima actualizare: 2026-10-27 — crearea gospodăriei din interfață (modal pe `/start`), pagina Setări sistem
+> (cod de invitație, doar admin), eliminarea `users/admin.py` și a rolului dat automat la `createsuperuser`.
 
 ## Prezentare generală
 
@@ -15,8 +16,8 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `Household` și crearea unei gospodării). Nu există încă aplicații de domeniu.
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
-  aplicația cu antet pentru cele cu rol), plus paginile Acasă („Gospodăria noastră”, schiță), Status
-  și 404.
+  aplicația cu antet pentru cele cu rol), crearea unei gospodării (modal pe `/start`), plus paginile
+  Acasă („Gospodăria noastră”, schiță), Setări sistem (codul de invitație, doar admin), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -66,8 +67,8 @@ our-money/
 │   │       └── test_api.py        # creare, validarea numelui, user deja în gospodărie, auth, CSRF, /me/
 │   └── users/                     # Utilizatori și autentificare
 │       ├── models.py              # User (AbstractUser): id UUID, role admin/user/'' (implicit '' = fără rol),
-│       │                          #   household (FK opțional, SET_NULL, related_name='members'), is_admin
-│       ├── admin.py               # User în /admin/, cu secțiunea și filtrul „Rol”
+│       │                          #   household (FK opțional, SET_NULL, related_name='members'), is_admin;
+│       │                          #   CustomUserManager fără comportament propriu (referit de migrația 0001)
 │       ├── serializers.py         # UserSerializer (ieșire, cu household), SignupSerializer, LoginSerializer
 │       ├── services.py            # register_user()
 │       ├── validators.py          # MinimumLengthValidator cu mesaje în română
@@ -76,7 +77,7 @@ our-money/
 │       ├── migrations/            # 0001_initial (tabelul users_user), 0002_optional_role, 0003_user_household
 │       └── tests/
 │           ├── test_auth_api.py   # csrf, signup, login, logout, me, CSRF obligatoriu, durata sesiunii
-│           ├── test_models.py     # rolul implicit, superuser = admin, is_admin, id UUID
+│           ├── test_models.py     # rolul implicit, superuser fără rol, is_admin, id UUID
 │           └── test_validators.py # mesajul de parolă în română
 ├── frontend/                      # Aplicația React + TypeScript (Vite)
 │   ├── index.html                 # Pagina HTML unică (<div id="root">)
@@ -90,25 +91,32 @@ our-money/
 │       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
 │       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
 │       │                          #   RequireAuth → RequireNoRole → /start;
-│       │                          #   RequireAuth → RequireRole → Layout → /, /status, *
+│       │                          #   RequireAuth → RequireRole → Layout → /, /status, *;
+│       │                          #   în Layout, RequireRole role="admin" → /settings
 │       ├── index.css              # Variabilele de design (culori, rază, font) + stiluri globale
 │       ├── auth/
-│       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout()
+│       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout(), refreshUser()
 │       │   ├── AuthProvider.tsx   # La pornire: cookie CSRF + /me/; ține userul curent
 │       │   ├── useAuth.ts         # Hook-ul prin care componentele citesc contextul
 │       │   ├── RequireAuth.tsx    # Paznic: nelogat → /login (ține minte pagina cerută în state.from)
 │       │   ├── RedirectIfAuthenticated.tsx  # Paznic: logat → state.from sau /
-│       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start
+│       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start; cu `role`, alt rol → /
 │       │   └── RequireNoRole.tsx  # Paznic: logat cu rol → /
 │       ├── components/
-│       │   ├── Layout/            # Antetul după design (logo, meniu, rol, nume, Ieșire) + <Outlet />
+│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu, Setări sistem pentru admin,
+│       │   │                      #   rol, nume, Ieșire) + <Outlet />
+│       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Button/            # Buton primary / secondary (CSS Module)
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
+│       ├── households/
+│       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
+│       │   └── HouseholdForm.module.css # Stiluri comune formularelor de gospodărie
 │       ├── pages/
 │       │   ├── HomePage.tsx       # Schiță: „Gospodăria noastră” (doar cu rol)
-│       │   ├── StartPage.tsx      # Schiță: creează / alătură-te unei gospodării (butoane inactive; doar fără rol)
+│       │   ├── StartPage.tsx      # Creează o gospodărie (modal) / alătură-te (inactiv încă); doar fără rol
+│       │   ├── SettingsPage.tsx   # Setări sistem: codul de invitație + Copiază (doar admin)
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
 │       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
@@ -117,6 +125,7 @@ our-money/
 │       └── api/
 │           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
 │           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
+│           ├── households.ts      # createHousehold() + tipul Household
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -171,8 +180,10 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   `SECRET_KEY` (obligatoriu), `DEBUG` (implicit `False`), `ALLOWED_HOSTS` (listă separată prin virgulă),
   `DATABASE_URL` (obligatoriu)
 - **Baza de date:** PostgreSQL, configurată prin `DATABASES = {'default': env.db('DATABASE_URL')}`
-- **Utilizator:** `AUTH_USER_MODEL = 'users.User'`; `createsuperuser` setează rolul `admin`.
-  `is_staff` / `is_superuser` controlează doar panoul tehnic `/admin/`; rolul din aplicație este `role`
+- **Utilizator:** `AUTH_USER_MODEL = 'users.User'`. Rolul din aplicație este `role` și se primește
+  doar din aplicație (creatorul unei gospodării devine `admin`); `createsuperuser` nu dă rol.
+  `is_staff` / `is_superuser` controlează doar panoul tehnic `/admin/`, unde modelele proiectului
+  nu sunt înregistrate
 - **Autentificare:** doar sesiune Django (`SessionAuthentication`): cookie `sessionid` + protecție
   CSRF (cookie `csrftoken`, header `X-CSRFToken`). Signup și login au `csrf_protect` explicit
 - **Durata sesiunii:** expiră după o zi de inactivitate (`SESSION_COOKIE_AGE = 86400`,
@@ -186,7 +197,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 44 de teste (`core`, `users`, `households`)
+  `user` (cont fără rol, parola `PASSWORD`). 45 de teste (`core`, `users`, `households`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -207,9 +218,9 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - Rutele sunt protejate de paznici (`auth/RequireAuth`, `auth/RedirectIfAuthenticated`), puși ca
   rute-layout în `App.tsx`; cât timp `isLoading` e `true` afișează `PageLoader`.
 - Direcționarea după rol: un user logat fără rol vede doar `/start`; unul cu rol vede aplicația
-  (Layout). Backend-ul are API-ul de creare a gospodăriei (care atribuie rolul `admin`), dar
-  interfața pentru creare și alăturare nu e încă implementată; până atunci rolul se poate seta și din
-  panoul tehnic `/admin/` (`users/admin.py`, care va fi eliminat când atribuirea rolului se face din aplicație).
+  (Layout). Rolul se primește creând o gospodărie din modalul de pe `/start`: după creare,
+  `refreshUser()` reîncarcă `/me/`, iar paznicul `RequireNoRole` trimite userul pe Acasă.
+  Alăturarea cu cod de invitație nu e încă implementată.
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 
@@ -218,7 +229,8 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 | Folder | Conține | Regulă |
 |--------|---------|--------|
 | `pages/` | O componentă per rută | Afișează date și state; nu apelează `fetch` direct |
-| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
+| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
+| `households/` | Componente de domeniu pentru gospodării (modalul de creare), folosite din `pages/` | Pot apela funcții din `api/` |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 

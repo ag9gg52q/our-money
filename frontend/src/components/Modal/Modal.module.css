@@ -1,0 +1,23 @@
+.dialog {
+  width: min(440px, calc(100% - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: 0 20px 50px rgb(22 25 29 / 0.25);
+}
+
+.dialog::backdrop {
+  background: rgb(22 25 29 / 0.45);
+}
+
+.body {
+  padding: 28px;
+}
+
+.title {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 800;
+}

@@ -58,8 +58,8 @@ npm run dev
 
 Deschide http://localhost:5173 — apare pagina de autentificare.
 
-- **Cont nou:** „Creează unul” → după înregistrare te autentifici; contul nou nu are rol, deci ajungi pe pagina de început.
-- **Cont cu acces la aplicație:** rulează `python ourmoney\manage.py createsuperuser` (primește rolul de administrator) și autentifică-te cu el.
+- **Cont nou:** „Creează unul” → după înregistrare te autentifici și ajungi pe pagina de început.
+- **Acces la aplicație:** pe pagina de început alege „Creează o gospodărie”; devii administratorul ei.
 
 ## Teste și verificări
 
