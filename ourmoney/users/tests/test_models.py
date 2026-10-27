@@ -12,10 +12,16 @@ def test_new_user_has_no_role():
     assert user.is_admin is False
 
 
-def test_superuser_gets_admin_role():
+def test_superuser_has_no_role():
     user = User.objects.create_superuser(username='root', password='OurMoney2026!x')
 
-    assert user.role == User.Role.ADMIN
+    assert user.role == ''
+    assert user.is_admin is False
+
+
+def test_admin_role_makes_user_admin():
+    user = User.objects.create_user(username='ion', password='x', role=User.Role.ADMIN)
+
     assert user.is_admin is True
 
 
