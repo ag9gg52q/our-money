@@ -1,0 +1,44 @@
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.side {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.side a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.side a:hover {
+  background: var(--color-ground);
+}
+
+.side a:global(.active) {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-weight: 800;
+}
+
+.content {
+  flex: 999 1 560px;
+  min-width: 0;
+}

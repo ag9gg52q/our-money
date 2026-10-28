@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-28 — alăturarea la o gospodărie cu cod de invitație
-> (`POST /api/v1/households/join/` și modalul de pe `/start`).
+> Ultima actualizare: 2026-10-28 — pagina Acasă după design și scheletul Setărilor sistem
+> (tab-uri și nomenclatoare ca rute imbricate, secțiuni „În curând”).
 
 ## Prezentare generală
 
@@ -16,8 +16,9 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `Household` și crearea unei gospodării). Nu există încă aplicații de domeniu.
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
-  aplicația cu antet pentru cele cu rol), crearea unei gospodării (modal pe `/start`), plus paginile
-  Acasă („Gospodăria noastră”, schiță), Setări sistem (codul de invitație, doar admin), Status și 404.
+  aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
+  plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin: codul de
+  invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte, deocamdată „În curând”), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -95,8 +96,9 @@ our-money/
 │       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
 │       │                          #   RequireAuth → RequireNoRole → /start;
 │       │                          #   RequireAuth → RequireRole → Layout → /, /status, *;
-│       │                          #   în Layout, RequireRole role="admin" → /settings
-│       ├── index.css              # Variabilele de design (culori, rază, font) + stiluri globale
+│       │                          #   în Layout, RequireRole role="admin" → /settings, cu copiii
+│       │                          #   nomenclatoare/<NOMENCLATORS>, template-uri, rapoarte (index → redirect)
+│       ├── index.css              # Variabilele de design (culori, inclusiv info/warm, rază, font) + stiluri globale
 │       ├── auth/
 │       │   ├── AuthContext.ts     # Contextul: user, isLoading, login(), logout(), refreshUser()
 │       │   ├── AuthProvider.tsx   # La pornire: cookie CSRF + /me/; ține userul curent
@@ -106,7 +108,7 @@ our-money/
 │       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start; cu `role`, alt rol → /
 │       │   └── RequireNoRole.tsx  # Paznic: logat cu rol → /
 │       ├── components/
-│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu, Setări sistem pentru admin,
+│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu Acasă + Setări sistem pentru admin,
 │       │   │                      #   rol, nume, Ieșire) + <Outlet />
 │       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
@@ -118,9 +120,14 @@ our-money/
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
 │       │   └── HouseholdForm.module.css # Stiluri comune formularelor de gospodărie
 │       ├── pages/
-│       │   ├── HomePage.tsx       # Schiță: „Gospodăria noastră” (doar cu rol)
+│       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială / venit
+│       │   │                      #   „În curând”, Setări sistem pentru admin), bloc gol pentru rapoarte
 │       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
-│       │   ├── SettingsPage.tsx   # Setări sistem: codul de invitație + Copiază (doar admin)
+│       │   ├── SettingsPage.tsx   # Layout Setări sistem: codul de invitație + Copiază, tab-uri, <Outlet />
+│       │   ├── settings/
+│       │   │   ├── nomenclators.ts        # NOMENCLATORS: Categorii, Subcategorii, Surse de venit, Gospodărie
+│       │   │   ├── NomenclatorsPage.tsx   # Layout: meniul lateral al nomenclatoarelor + <Outlet />
+│       │   │   └── ComingSoonSection.tsx  # Secțiune temporară: titlu, descriere, „În curând”
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
 │       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
@@ -233,7 +240,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 
 | Folder | Conține | Regulă |
 |--------|---------|--------|
-| `pages/` | O componentă per rută | Afișează date și state; nu apelează `fetch` direct |
+| `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
 | `households/` | Componente de domeniu pentru gospodării (modalurile de creare și alăturare), folosite din `pages/` | Pot apela funcții din `api/` |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |

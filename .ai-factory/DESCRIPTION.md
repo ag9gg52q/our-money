@@ -13,9 +13,10 @@ Python (Django) și React + TypeScript. Aplicația pornește de la zero — isto
 
 Stadiul curent: fundațiile backend și frontend și autentificarea sunt gata. Utilizatorii își creează
 singuri contul (fără rol), se autentifică prin sesiune Django și sunt direcționați după rol: fără rol →
-pagina de început, cu rol → aplicația („Gospodăria noastră”, schiță). Rolurile sunt `admin` și `user`.
+pagina de început, cu rol → aplicația (Acasă cu acțiuni rapide). Rolurile sunt `admin` și `user`.
 Un user fără rol își poate crea o gospodărie (devine admin) sau se poate alătura uneia cu codul de
-invitație (devine user); adminul vede codul în Setări sistem.
+invitație (devine user); adminul vede codul în Setări sistem, unde există scheletul secțiunilor
+Nomenclatoare (Categorii, Subcategorii, Surse de venit, Gospodărie), Template-uri și Rapoarte.
 Nu există încă funcționalități de domeniu (cheltuieli, venituri).
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 

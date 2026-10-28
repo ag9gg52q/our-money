@@ -11,6 +11,10 @@
   --color-accent-soft: #e3f1ee;
   --color-danger: #a8381a;
   --color-danger-soft: #f6e3dd;
+  --color-info: #2b55c7;
+  --color-info-soft: #e4eaf8;
+  --color-warm: #8a5a12;
+  --color-warm-soft: #f1ece2;
 
   --radius: 10px;
   --font: 'Manrope Variable', system-ui, sans-serif;
