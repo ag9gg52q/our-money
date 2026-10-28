@@ -146,6 +146,7 @@ def test_me_returns_current_user(api_client, user):
         'first_name': '',
         'last_name': '',
         'role': None,
+        'household': None,
     }
 
 

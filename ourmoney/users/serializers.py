@@ -8,14 +8,23 @@ from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
+    household = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'role', 'household')
         read_only_fields = fields
 
     def get_role(self, user):
         return user.role or None
+
+    def get_household(self, user):
+        if user.household is None:
+            return None
+        data = {'id': user.household.id, 'name': user.household.name}
+        if user.is_admin:
+            data['invite_code'] = user.household.invite_code
+        return data
 
 
 class SignupSerializer(serializers.ModelSerializer):

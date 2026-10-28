@@ -25,7 +25,8 @@ our-money/
 │   ├── conftest.py           # Fixture-uri pytest comune (api_client, csrf_client, user)
 │   ├── ourmoney/             # Pachetul de configurare al proiectului
 │   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
-│   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls
+│   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
+│   │   │                     #   api/v1/households/ → households.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
 │   ├── core/                 # App comun: endpoint-ul de health
@@ -34,8 +35,12 @@ our-money/
 │   │   └── tests/            # teste pytest
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
+│   │   ├── serializers.py    # validarea creării (nume; userul nu are deja gospodărie)
+│   │   ├── services.py       # create_household() — userul devine admin
+│   │   ├── views.py          # creare gospodărie (POST)
+│   │   ├── urls.py           # rutele /api/v1/households/
 │   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
-│   │   └── tests/            # teste pytest pentru model
+│   │   └── tests/            # teste pytest: model, API
 │   └── users/                # Utilizatori și autentificare
 │       ├── models.py         # User: id UUID, role admin/user sau gol (cont nou), household (opțional)
 │       ├── serializers.py    # validare signup/login, formatul userului
@@ -49,11 +54,12 @@ our-money/
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
 │   └── src/
 │       ├── main.tsx          # Punctul de intrare
-│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout
+│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout; /settings doar admin
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
-│       ├── auth/             # Contextul de autentificare + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
-│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField)
-│       ├── pages/            # O componentă per pagină (Home, Start, Login, Signup, Status, NotFound)
+│       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
+│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Modal)
+│       ├── households/       # Modalul de creare a gospodăriei
+│       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
@@ -80,6 +86,7 @@ our-money/
 | `ourmoney/users/models.py` | Modelul de utilizator (`AUTH_USER_MODEL = 'users.User'`) |
 | `ourmoney/households/models.py` | Modelul `Household` și generarea codului de invitație |
 | `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
+| `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare) |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |
@@ -87,7 +94,7 @@ our-money/
 | `frontend/src/main.tsx` | Punctul de intrare al aplicației React |
 | `frontend/src/App.tsx` | Rutele frontend-ului |
 | `frontend/src/api/client.ts` | `apiFetch()` — toate cererile către backend (JSON, CSRF, erori) |
-| `frontend/src/auth/AuthProvider.tsx` | Userul curent, login și logout, disponibile prin `useAuth()` |
+| `frontend/src/auth/AuthProvider.tsx` | Userul curent, login, logout și refreshUser, disponibile prin `useAuth()` |
 | `frontend/vite.config.ts` | Configurare Vite + proxy `/api` |
 
 ## Documentație

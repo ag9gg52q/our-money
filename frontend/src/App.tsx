@@ -9,6 +9,7 @@ import Layout from './components/Layout/Layout'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
+import SettingsPage from './pages/SettingsPage'
 import SignupPage from './pages/SignupPage'
 import StartPage from './pages/StartPage'
 import StatusPage from './pages/StatusPage'
@@ -30,6 +31,9 @@ export default function App() {
               <Route element={<Layout />}>
                 <Route index element={<HomePage />} />
                 <Route path="status" element={<StatusPage />} />
+                <Route element={<RequireRole role="admin" />}>
+                  <Route path="settings" element={<SettingsPage />} />
+                </Route>
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Route>
