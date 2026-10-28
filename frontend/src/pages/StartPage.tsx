@@ -5,13 +5,14 @@ import { useAuth } from '../auth/useAuth'
 import AuthLayout from '../components/AuthLayout/AuthLayout'
 import Button from '../components/Button/Button'
 import CreateHouseholdModal from '../households/CreateHouseholdModal'
+import JoinHouseholdModal from '../households/JoinHouseholdModal'
 import styles from './StartPage.module.css'
 
-// Alăturarea la o gospodărie va fi implementată ulterior.
 export default function StartPage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isJoinOpen, setIsJoinOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
@@ -39,13 +40,19 @@ export default function StartPage() {
         <Button type="button" onClick={() => setIsCreateOpen(true)}>
           Creează o gospodărie
         </Button>
-        <Button type="button" variant="secondary" disabled>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setIsJoinOpen(true)}
+        >
           Alătură-te unei gospodării
         </Button>
-        <p className={styles.note}>Alăturarea va fi disponibilă în curând.</p>
       </div>
       {isCreateOpen && (
         <CreateHouseholdModal onClose={() => setIsCreateOpen(false)} />
+      )}
+      {isJoinOpen && (
+        <JoinHouseholdModal onClose={() => setIsJoinOpen(false)} />
       )}
     </AuthLayout>
   )

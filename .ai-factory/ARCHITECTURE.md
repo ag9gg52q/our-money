@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-27 — crearea gospodăriei din interfață (modal pe `/start`), pagina Setări sistem
-> (cod de invitație, doar admin), eliminarea `users/admin.py` și a rolului dat automat la `createsuperuser`.
+> Ultima actualizare: 2026-10-28 — alăturarea la o gospodărie cu cod de invitație
+> (`POST /api/v1/households/join/` și modalul de pe `/start`).
 
 ## Prezentare generală
 
@@ -55,10 +55,13 @@ our-money/
 │   │   ├── models.py              # Household: id UUID, name, invite_code unic (XXXX-XXXX), created_at;
 │   │   │                          #   generate_invite_code() cu `secrets`, fără 0/O/1/I/L
 │   │   ├── serializers.py         # HouseholdSerializer: name (intrare), id + invite_code (doar ieșire);
-│   │   │                          #   respinge userul care are deja gospodărie
-│   │   ├── services.py            # create_household(): creează gospodăria, userul devine admin (atomic)
-│   │   ├── views.py               # HouseholdCreateView (POST)
-│   │   ├── urls.py                # '' (name='household-create')
+│   │   │                          #   respinge userul care are deja gospodărie;
+│   │   │                          #   JoinHouseholdSerializer: invite_code normalizat (majuscule,
+│   │   │                          #   cu cratimă), caută gospodăria → attrs['household']
+│   │   ├── services.py            # create_household(): creează gospodăria, userul devine admin (atomic);
+│   │   │                          #   join_household(): userul intră în gospodărie cu rolul user
+│   │   ├── views.py               # HouseholdCreateView (POST), HouseholdJoinView (POST)
+│   │   ├── urls.py                # '' (name='household-create'), 'join/' (name='household-join')
 │   │   ├── signals.py             # pre_delete: membrii gospodăriei șterse își pierd rolul
 │   │   ├── apps.py                # ready() înregistrează signal-urile
 │   │   ├── migrations/            # 0001_initial — tabelul households_household
@@ -112,10 +115,11 @@ our-money/
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
+│       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
 │       │   └── HouseholdForm.module.css # Stiluri comune formularelor de gospodărie
 │       ├── pages/
 │       │   ├── HomePage.tsx       # Schiță: „Gospodăria noastră” (doar cu rol)
-│       │   ├── StartPage.tsx      # Creează o gospodărie (modal) / alătură-te (inactiv încă); doar fără rol
+│       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
 │       │   ├── SettingsPage.tsx   # Setări sistem: codul de invitație + Copiază (doar admin)
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
@@ -125,7 +129,7 @@ our-money/
 │       └── api/
 │           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
 │           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
-│           ├── households.ts      # createHousehold() + tipul Household
+│           ├── households.ts      # createHousehold(), joinHousehold() + tipul Household
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -167,6 +171,7 @@ Nu există încă aplicații de domeniu.
 | POST | `/api/v1/auth/logout/` | autentificat, cu CSRF | `204` |
 | GET | `/api/v1/auth/me/` | autentificat | `200` userul curent; `403` fără sesiune |
 | POST | `/api/v1/households/` | autentificat, cu CSRF | `201 {id, name, invite_code}` — userul devine `admin` al gospodăriei; `400` nume invalid sau userul are deja gospodărie |
+| POST | `/api/v1/households/join/` | autentificat, cu CSRF | corp `{invite_code}` (acceptat cu litere mici, fără cratimă, cu spații); `200 {id, name}` — userul devine `user` al gospodăriei; `400` cod invalid (sub `invite_code`) sau userul are deja gospodărie |
 
 Userul este întors ca `{id, username, email, first_name, last_name, role, household}`; `role` este
 `"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol). `household` este `null` sau
@@ -197,7 +202,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 45 de teste (`core`, `users`, `households`)
+  `user` (cont fără rol, parola `PASSWORD`). 57 de teste (`core`, `users`, `households`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -218,9 +223,9 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - Rutele sunt protejate de paznici (`auth/RequireAuth`, `auth/RedirectIfAuthenticated`), puși ca
   rute-layout în `App.tsx`; cât timp `isLoading` e `true` afișează `PageLoader`.
 - Direcționarea după rol: un user logat fără rol vede doar `/start`; unul cu rol vede aplicația
-  (Layout). Rolul se primește creând o gospodărie din modalul de pe `/start`: după creare,
-  `refreshUser()` reîncarcă `/me/`, iar paznicul `RequireNoRole` trimite userul pe Acasă.
-  Alăturarea cu cod de invitație nu e încă implementată.
+  (Layout). Rolul se primește din modalurile de pe `/start`: creând o gospodărie (`admin`) sau
+  alăturându-te uneia cu codul de invitație (`user`). După succes, `refreshUser()` reîncarcă
+  `/me/`, iar paznicul `RequireNoRole` trimite userul pe Acasă.
 - Flux: componentă din `pages/` → funcție din `api/` (`fetch`) → proxy Vite → `ourmoney/urls.py` →
   `<app>/urls.py` → view → răspuns JSON → înapoi în componentă, care își actualizează state-ul.
 
@@ -230,7 +235,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/` | Componente de domeniu pentru gospodării (modalul de creare), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/` | Componente de domeniu pentru gospodării (modalurile de creare și alăturare), folosite din `pages/` | Pot apela funcții din `api/` |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 

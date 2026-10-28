@@ -12,3 +12,10 @@ def create_household(*, user, name):
     user.role = User.Role.ADMIN
     user.save(update_fields=['household', 'role'])
     return household
+
+
+def join_household(*, user, household):
+    user.household = household
+    user.role = User.Role.USER
+    user.save(update_fields=['household', 'role'])
+    return household

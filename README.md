@@ -59,7 +59,8 @@ npm run dev
 Deschide http://localhost:5173 — apare pagina de autentificare.
 
 - **Cont nou:** „Creează unul” → după înregistrare te autentifici și ajungi pe pagina de început.
-- **Acces la aplicație:** pe pagina de început alege „Creează o gospodărie”; devii administratorul ei.
+- **Acces la aplicație:** pe pagina de început alege „Creează o gospodărie” (devii administratorul ei)
+  sau „Alătură-te unei gospodării” cu codul de invitație din Setări sistem ale administratorului.
 
 ## Teste și verificări
 
