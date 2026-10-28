@@ -35,9 +35,9 @@ our-money/
 │   │   └── tests/            # teste pytest
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
-│   │   ├── serializers.py    # validarea creării (nume; userul nu are deja gospodărie)
-│   │   ├── services.py       # create_household() — userul devine admin
-│   │   ├── views.py          # creare gospodărie (POST)
+│   │   ├── serializers.py    # validarea creării (nume) și a alăturării (cod de invitație)
+│   │   ├── services.py       # create_household() — admin; join_household() — user
+│   │   ├── views.py          # creare gospodărie și alăturare cu cod (POST)
 │   │   ├── urls.py           # rutele /api/v1/households/
 │   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
 │   │   └── tests/            # teste pytest: model, API
@@ -58,7 +58,7 @@ our-money/
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
 │       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
 │       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Modal)
-│       ├── households/       # Modalul de creare a gospodăriei
+│       ├── households/       # Modalurile de creare și alăturare la o gospodărie
 │       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
@@ -86,7 +86,7 @@ our-money/
 | `ourmoney/users/models.py` | Modelul de utilizator (`AUTH_USER_MODEL = 'users.User'`) |
 | `ourmoney/households/models.py` | Modelul `Household` și generarea codului de invitație |
 | `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
-| `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare) |
+| `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare, alăturare) |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |

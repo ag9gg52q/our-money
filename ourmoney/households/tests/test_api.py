@@ -6,6 +6,7 @@ from users.models import User
 
 pytestmark = pytest.mark.django_db
 URL = '/api/v1/households/'
+JOIN_URL = '/api/v1/households/join/'
 ME_URL = '/api/v1/auth/me/'
 
 
@@ -13,6 +14,11 @@ ME_URL = '/api/v1/auth/me/'
 def logged_client(api_client, user):
     api_client.force_authenticate(user=user)
     return api_client
+
+
+@pytest.fixture
+def household():
+    return Household.objects.create(name='Familia Popescu')
 
 
 def test_create_household(logged_client, user):
@@ -77,6 +83,86 @@ def test_create_household_requires_csrf(user):
 
     assert response.status_code == 403
     assert Household.objects.count() == 0
+
+
+def test_join_household(logged_client, user, household):
+    response = logged_client.post(JOIN_URL, {'invite_code': household.invite_code}, format='json')
+
+    assert response.status_code == 200
+    assert response.json() == {'id': str(household.id), 'name': 'Familia Popescu'}
+    user.refresh_from_db()
+    assert user.household == household
+    assert user.role == User.Role.USER
+
+
+@pytest.mark.parametrize(
+    'transform',
+    [
+        lambda code: code.lower(),
+        lambda code: code.replace('-', ''),
+        lambda code: f'  {code}  ',
+        lambda code: code.replace('-', ' ').lower(),
+    ],
+    ids=['lowercase', 'without-dash', 'surrounding-spaces', 'space-instead-of-dash'],
+)
+def test_join_household_normalizes_code(logged_client, user, household, transform):
+    response = logged_client.post(
+        JOIN_URL, {'invite_code': transform(household.invite_code)}, format='json'
+    )
+
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.household == household
+
+
+@pytest.mark.parametrize('code', ['ZZZZ-9999', 'ABC', ''])
+def test_join_household_invalid_code_returns_400(logged_client, user, household, code):
+    response = logged_client.post(JOIN_URL, {'invite_code': code}, format='json')
+
+    assert response.status_code == 400
+    assert 'invite_code' in response.data
+    user.refresh_from_db()
+    assert user.household is None
+    assert user.role == ''
+
+
+def test_join_household_unknown_code_message(logged_client, household):
+    response = logged_client.post(JOIN_URL, {'invite_code': 'ZZZZ-9999'}, format='json')
+
+    assert response.data['invite_code'] == ['Codul de invitație nu este valid.']
+
+
+def test_join_household_when_user_already_in_household(logged_client, user, household):
+    existing = Household.objects.create(name='Familie')
+    user.household = existing
+    user.role = User.Role.ADMIN
+    user.save()
+
+    response = logged_client.post(JOIN_URL, {'invite_code': household.invite_code}, format='json')
+
+    assert response.status_code == 400
+    assert response.data['non_field_errors'] == ['Faci deja parte dintr-o gospodărie.']
+    user.refresh_from_db()
+    assert user.household == existing
+    assert user.role == User.Role.ADMIN
+
+
+def test_join_household_unauthenticated(api_client, household):
+    response = api_client.post(JOIN_URL, {'invite_code': household.invite_code}, format='json')
+
+    assert response.status_code == 403
+    assert household.members.count() == 0
+
+
+def test_join_household_requires_csrf(user, household):
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(user)
+
+    response = client.post(JOIN_URL, {'invite_code': household.invite_code}, format='json')
+
+    assert response.status_code == 403
+    user.refresh_from_db()
+    assert user.household is None
 
 
 def test_me_for_admin_includes_invite_code(logged_client):

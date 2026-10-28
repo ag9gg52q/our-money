@@ -12,3 +12,10 @@ export function createHousehold(name: string): Promise<Household> {
     body: JSON.stringify({ name }),
   })
 }
+
+export function joinHousehold(inviteCode: string): Promise<Household> {
+  return apiFetch<Household>('/api/v1/households/join/', {
+    method: 'POST',
+    body: JSON.stringify({ invite_code: inviteCode }),
+  })
+}
