@@ -25,7 +25,6 @@ export default function Layout() {
           <NavLink to="/" end>
             Acasă
           </NavLink>
-          <NavLink to="/status">Status</NavLink>
           {user?.role === 'admin' && (
             <NavLink to="/settings">Setări sistem</NavLink>
           )}

@@ -1,3 +1,45 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  margin-bottom: -1px;
+  border-bottom: 3px solid transparent;
+  color: var(--color-muted);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tabs a:hover {
+  color: var(--color-ink);
+}
+
+.tabs a:global(.active) {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-ink);
+}
+
 .card {
   max-width: 560px;
   padding: 24px;
@@ -9,12 +51,6 @@
 .cardTitle {
   margin: 0 0 6px;
   font-size: 17px;
-}
-
-.hint {
-  margin: 0 0 16px;
-  color: var(--color-muted);
-  font-size: 14px;
 }
 
 .codeRow {

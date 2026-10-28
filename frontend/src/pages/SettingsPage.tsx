@@ -1,8 +1,15 @@
 import { useState } from 'react'
+import { NavLink, Outlet } from 'react-router'
 
 import { useAuth } from '../auth/useAuth'
 import Button from '../components/Button/Button'
 import styles from './SettingsPage.module.css'
+
+const TABS = [
+  { to: 'nomenclatoare', label: 'Nomenclatoare' },
+  { to: 'template-uri', label: 'Template-uri' },
+  { to: 'rapoarte', label: 'Rapoarte' },
+]
 
 export default function SettingsPage() {
   const { user } = useAuth()
@@ -16,8 +23,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <>
-      <h1>Setări sistem</h1>
+    <div className={styles.page}>
+      <h1 className={styles.title}>Setări sistem</h1>
+
+      {/* Temporar aici: se mută în Nomenclatoare → Gospodărie. */}
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>Cod de invitație</h2>
         <div className={styles.codeRow}>
@@ -27,6 +36,15 @@ export default function SettingsPage() {
           </Button>
         </div>
       </section>
-    </>
+
+      <nav className={styles.tabs} aria-label="Secțiuni setări">
+        {TABS.map((tab) => (
+          <NavLink key={tab.to} to={tab.to}>
+            {tab.label}
+          </NavLink>
+        ))}
+      </nav>
+      <Outlet />
+    </div>
   )
 }

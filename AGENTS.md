@@ -54,12 +54,13 @@ our-money/
 │   ├── package.json          # Dependențe + scripturi (dev, build, lint, format)
 │   └── src/
 │       ├── main.tsx          # Punctul de intrare
-│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout; /settings doar admin
+│       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout; /settings doar admin, cu sub-rute (nomenclatoare, template-uri, rapoarte)
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
 │       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
 │       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Modal)
 │       ├── households/       # Modalurile de creare și alăturare la o gospodărie
-│       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound)
+│       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound);
+│       │                     #   settings/ — sub-paginile Setărilor sistem
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
