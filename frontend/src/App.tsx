@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 
 import AuthProvider from './auth/AuthProvider'
@@ -10,12 +11,17 @@ import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SettingsPage from './pages/SettingsPage'
+import CategoriesSection from './pages/settings/CategoriesSection'
 import ComingSoonSection from './pages/settings/ComingSoonSection'
 import { NOMENCLATORS } from './pages/settings/nomenclators'
 import NomenclatorsPage from './pages/settings/NomenclatorsPage'
 import SignupPage from './pages/SignupPage'
 import StartPage from './pages/StartPage'
 import StatusPage from './pages/StatusPage'
+
+const NOMENCLATOR_PAGES: Record<string, ReactNode> = {
+  categorii: <CategoriesSection />,
+}
 
 export default function App() {
   return (
@@ -50,10 +56,12 @@ export default function App() {
                           key={item.path}
                           path={item.path}
                           element={
-                            <ComingSoonSection
-                              title={item.label}
-                              description={item.description}
-                            />
+                            NOMENCLATOR_PAGES[item.path] ?? (
+                              <ComingSoonSection
+                                title={item.label}
+                                description={item.description}
+                              />
+                            )
                           }
                         />
                       ))}

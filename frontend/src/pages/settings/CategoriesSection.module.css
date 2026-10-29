@@ -1,0 +1,147 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.message {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0;
+  padding: 32px 16px;
+  border: 1px dashed var(--color-input-border);
+  border-radius: 12px;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-ground);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.name {
+  font-weight: 700;
+}
+
+.nameInactive {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.statusOn {
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.statusOff {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.actionsCell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -10,9 +10,12 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Fundația backend** — PostgreSQL, setări din `.env`, Django REST Framework, pytest, fișier de dependențe
 - [x] **Fundația frontend** — aplicație React + TypeScript (Vite), layout, routing, conectare la API
 - [x] **Autentificare** — signup, login/logout cu sesiune, rute protejate, rol opțional și direcționare după rol
-- [ ] **Gospodării** — creare (creatorul devine admin), alăturare cu cod de invitație (devine user), datele izolate pe gospodărie
-- [ ] **Categorii și subcategorii** — gestionarea nomenclatorului de categorii și subcategorii
-- [ ] **Persoane** — membrii cărora li se atribuie tranzacțiile
+- [x] **Gospodării** — creare (creatorul devine admin), alăturare cu cod de invitație (devine user), datele izolate pe gospodărie
+- [x] **Acasă și Setări sistem** — pagina Acasă, scheletul Setărilor (tab-uri, meniul nomenclatoarelor)
+- [x] **Categorii** — adăugare, redenumire, dezactivare; doar adminul modifică
+- [ ] **Subcategorii** — subcategoriile fiecărei categorii
+- [ ] **Surse de venit** — nomenclatorul surselor de venit
+- [ ] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
 - [ ] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
 - [ ] **Venituri** — înregistrarea și lista veniturilor
 - [ ] **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective de economisire
@@ -31,3 +34,6 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Fundația backend | 2026-10-16 |
 | Fundația frontend | 2026-10-19 |
 | Autentificare | 2026-10-23 |
+| Gospodării | 2026-10-28 |
+| Acasă și Setări sistem | 2026-10-29 |
+| Categorii | 2026-10-29 |

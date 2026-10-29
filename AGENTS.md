@@ -67,9 +67,10 @@ our-money/
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
 │       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
 │       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Modal)
+│       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── households/       # Modalurile de creare și alăturare la o gospodărie
 │       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound);
-│       │                     #   settings/ — sub-paginile Setărilor sistem
+│       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii funcțională)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code

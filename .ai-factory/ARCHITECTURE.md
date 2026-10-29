@@ -2,8 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-29 — API-ul categoriilor (`/api/v1/categories/`), permisiunile pe
-> gospodărie (`households/permissions.py`) și regula: endpoint-urile se scriu cu `APIView`.
+> Ultima actualizare: 2026-10-29 — categoriile: API-ul (`/api/v1/categories/`), permisiunile pe
+> gospodărie (`households/permissions.py`), regula `APIView` și ecranul Setări sistem → Nomenclatoare →
+> Categorii (listă, modal de adăugare / editare).
 
 ## Prezentare generală
 
@@ -13,12 +14,14 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
   `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
   API-ul de autentificare cu sesiune: signup, login, logout, me) și `households` (modelul
-  `Household` și crearea unei gospodării). Nu există încă aplicații de domeniu.
+  `Household`, crearea și alăturarea la o gospodărie, permisiunile pe gospodărie) și `categories`
+  (categoriile de cheltuieli ale gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
   plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin: codul de
-  invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte, deocamdată „În curând”), Status și 404.
+  invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează
+  Categorii, restul sunt „În curând”), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -131,6 +134,9 @@ our-money/
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Button/            # Buton primary / secondary (CSS Module)
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
+│       ├── categories/
+│       │   └── CategoryModal.tsx  # Modalul de adăugare / editare: denumire (+ bifa „Activă” la editare)
+│       │                          #   → createCategory() / updateCategory() → onSaved(categoria)
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
@@ -143,6 +149,8 @@ our-money/
 │       │   ├── settings/
 │       │   │   ├── nomenclators.ts        # NOMENCLATORS: Categorii, Subcategorii, Surse de venit, Gospodărie
 │       │   │   ├── NomenclatorsPage.tsx   # Layout: meniul lateral al nomenclatoarelor + <Outlet />
+│       │   │   ├── CategoriesSection.tsx  # Categorii: fetchCategories(); încărcare / eroare / listă goală;
+│       │   │   │                          #   tabel (denumire, stare); CategoryModal pentru adăugare / editare
 │       │   │   └── ComingSoonSection.tsx  # Secțiune temporară: titlu, descriere, „În curând”
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
@@ -153,6 +161,7 @@ our-money/
 │           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
 │           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
 │           ├── households.ts      # createHousehold(), joinHousehold() + tipul Household
+│           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -261,7 +270,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/` | Componente de domeniu pentru gospodării (modalurile de creare și alăturare), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/`, `categories/` | Componente de domeniu (modalurile gospodăriei; modalul categoriei), folosite din `pages/` | Pot apela funcții din `api/` |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 
