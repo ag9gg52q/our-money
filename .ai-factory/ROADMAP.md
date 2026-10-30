@@ -13,7 +13,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Gospodării** — creare (creatorul devine admin), alăturare cu cod de invitație (devine user), datele izolate pe gospodărie
 - [x] **Acasă și Setări sistem** — pagina Acasă, scheletul Setărilor (tab-uri, meniul nomenclatoarelor)
 - [x] **Categorii** — adăugare, redenumire, dezactivare; doar adminul modifică
-- [ ] **Subcategorii** — subcategoriile fiecărei categorii
+- [x] **Subcategorii** — subcategoriile fiecărei categorii
 - [ ] **Surse de venit** — nomenclatorul surselor de venit
 - [ ] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
 - [ ] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
@@ -37,3 +37,4 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Gospodării | 2026-10-28 |
 | Acasă și Setări sistem | 2026-10-29 |
 | Categorii | 2026-10-29 |
+| Subcategorii | 2026-10-30 |
