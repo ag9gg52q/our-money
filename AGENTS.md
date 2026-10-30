@@ -26,19 +26,28 @@ our-money/
 │   ├── ourmoney/             # Pachetul de configurare al proiectului
 │   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
 │   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
-│   │   │                     #   api/v1/households/ → households.urls
+│   │   │                     #   api/v1/households/ → households.urls, api/v1/categories/ → categories.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
 │   ├── core/                 # App comun: endpoint-ul de health
 │   │   ├── views.py          # health (GET, public)
 │   │   ├── urls.py           # health/
 │   │   └── tests/            # teste pytest
+│   ├── categories/           # Categoriile de cheltuieli ale gospodăriei
+│   │   ├── models.py         # Category: nume unic per gospodărie, activă / dezactivată
+│   │   ├── selectors.py      # household_categories() — citirea filtrată pe gospodărie
+│   │   ├── services.py       # create_category(), update_category()
+│   │   ├── serializers.py    # validarea numelui (inclusiv duplicat)
+│   │   ├── views.py          # listă + adăugare (GET, POST), editare (PATCH)
+│   │   ├── urls.py           # rutele /api/v1/categories/
+│   │   └── tests/            # teste pytest: model, API
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
 │   │   ├── serializers.py    # validarea creării (nume) și a alăturării (cod de invitație)
 │   │   ├── services.py       # create_household() — admin; join_household() — user
 │   │   ├── views.py          # creare gospodărie și alăturare cu cod (POST)
 │   │   ├── urls.py           # rutele /api/v1/households/
+│   │   ├── permissions.py    # IsHouseholdMember, IsHouseholdAdminOrReadOnly
 │   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
 │   │   └── tests/            # teste pytest: model, API
 │   └── users/                # Utilizatori și autentificare
@@ -58,9 +67,10 @@ our-money/
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
 │       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
 │       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Modal)
+│       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── households/       # Modalurile de creare și alăturare la o gospodărie
 │       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound);
-│       │                     #   settings/ — sub-paginile Setărilor sistem
+│       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii funcțională)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
@@ -88,6 +98,8 @@ our-money/
 | `ourmoney/households/models.py` | Modelul `Household` și generarea codului de invitație |
 | `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
 | `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare, alăturare) |
+| `ourmoney/categories/views.py` | API-ul categoriilor `/api/v1/categories/` (listă, adăugare, editare) |
+| `ourmoney/households/permissions.py` | Permisiunile pe gospodărie, folosite de API-urile datelor gospodăriei |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |

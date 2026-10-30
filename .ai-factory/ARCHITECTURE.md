@@ -2,8 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-28 — pagina Acasă după design și scheletul Setărilor sistem
-> (tab-uri și nomenclatoare ca rute imbricate, secțiuni „În curând”).
+> Ultima actualizare: 2026-10-29 — categoriile: API-ul (`/api/v1/categories/`), permisiunile pe
+> gospodărie (`households/permissions.py`), regula `APIView` și ecranul Setări sistem → Nomenclatoare →
+> Categorii (listă, modal de adăugare / editare).
 
 ## Prezentare generală
 
@@ -13,12 +14,14 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
   `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
   API-ul de autentificare cu sesiune: signup, login, logout, me) și `households` (modelul
-  `Household` și crearea unei gospodării). Nu există încă aplicații de domeniu.
+  `Household`, crearea și alăturarea la o gospodărie, permisiunile pe gospodărie) și `categories`
+  (categoriile de cheltuieli ale gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
   plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin: codul de
-  invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte, deocamdată „În curând”), Status și 404.
+  invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează
+  Categorii, restul sunt „În curând”), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -43,7 +46,8 @@ our-money/
 │   │   ├── __init__.py
 │   │   ├── settings.py            # Setări citite din .env (django-environ), DRF, PostgreSQL
 │   │   ├── urls.py                # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
-│   │   │                          #   api/v1/households/ → households.urls
+│   │   │                          #   api/v1/households/ → households.urls,
+│   │   │                          #   api/v1/categories/ → categories.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
 │   ├── core/                      # App comun (cross-cutting)
@@ -52,6 +56,19 @@ our-money/
 │   │   ├── apps.py                # CoreConfig
 │   │   └── tests/
 │   │       └── test_health.py     # GET → 200 {"status": "ok"}, POST → 405
+│   ├── categories/                # Categoriile de cheltuieli ale gospodăriei
+│   │   ├── models.py              # Category: id UUID, household (FK, CASCADE, related_name='categories'),
+│   │   │                          #   name (max 50), is_active, created_at; nume unic per gospodărie,
+│   │   │                          #   fără diferență de majuscule (UniqueConstraint cu Lower('name'))
+│   │   ├── selectors.py           # household_categories(): categoriile unei gospodării (izolarea)
+│   │   ├── services.py            # create_category(), update_category() (doar câmpurile primite)
+│   │   ├── serializers.py         # CategorySerializer: id (citire), name, is_active; nume duplicat → 400
+│   │   ├── views.py               # CategoryListView (GET, POST), CategoryDetailView (PATCH)
+│   │   ├── urls.py                # '' (category-list), '<uuid:pk>/' (category-detail)
+│   │   ├── migrations/            # 0001_initial — tabelul categories_category
+│   │   └── tests/
+│   │       ├── test_models.py     # stare implicită, ordonare, constrângerea unică, CASCADE
+│   │       └── test_api.py        # listare, adăugare, editare, permisiuni, izolare, CSRF, 405
 │   ├── households/                # Gospodării
 │   │   ├── models.py              # Household: id UUID, name, invite_code unic (XXXX-XXXX), created_at;
 │   │   │                          #   generate_invite_code() cu `secrets`, fără 0/O/1/I/L
@@ -63,6 +80,8 @@ our-money/
 │   │   │                          #   join_household(): userul intră în gospodărie cu rolul user
 │   │   ├── views.py               # HouseholdCreateView (POST), HouseholdJoinView (POST)
 │   │   ├── urls.py                # '' (name='household-create'), 'join/' (name='household-join')
+│   │   ├── permissions.py         # IsHouseholdMember; IsHouseholdAdminOrReadOnly (membrii citesc,
+│   │   │                          #   adminul scrie) — folosite de API-urile datelor gospodăriei
 │   │   ├── signals.py             # pre_delete: membrii gospodăriei șterse își pierd rolul
 │   │   ├── apps.py                # ready() înregistrează signal-urile
 │   │   ├── migrations/            # 0001_initial — tabelul households_household
@@ -115,6 +134,9 @@ our-money/
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Button/            # Buton primary / secondary (CSS Module)
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
+│       ├── categories/
+│       │   └── CategoryModal.tsx  # Modalul de adăugare / editare: denumire (+ bifa „Activă” la editare)
+│       │                          #   → createCategory() / updateCategory() → onSaved(categoria)
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
@@ -127,6 +149,8 @@ our-money/
 │       │   ├── settings/
 │       │   │   ├── nomenclators.ts        # NOMENCLATORS: Categorii, Subcategorii, Surse de venit, Gospodărie
 │       │   │   ├── NomenclatorsPage.tsx   # Layout: meniul lateral al nomenclatoarelor + <Outlet />
+│       │   │   ├── CategoriesSection.tsx  # Categorii: fetchCategories(); încărcare / eroare / listă goală;
+│       │   │   │                          #   tabel (denumire, stare); CategoryModal pentru adăugare / editare
 │       │   │   └── ComingSoonSection.tsx  # Secțiune temporară: titlu, descriere, „În curând”
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
@@ -137,6 +161,7 @@ our-money/
 │           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
 │           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
 │           ├── households.ts      # createHousehold(), joinHousehold() + tipul Household
+│           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -179,6 +204,9 @@ Nu există încă aplicații de domeniu.
 | GET | `/api/v1/auth/me/` | autentificat | `200` userul curent; `403` fără sesiune |
 | POST | `/api/v1/households/` | autentificat, cu CSRF | `201 {id, name, invite_code}` — userul devine `admin` al gospodăriei; `400` nume invalid sau userul are deja gospodărie |
 | POST | `/api/v1/households/join/` | autentificat, cu CSRF | corp `{invite_code}` (acceptat cu litere mici, fără cratimă, cu spații); `200 {id, name}` — userul devine `user` al gospodăriei; `400` cod invalid (sub `invite_code`) sau userul are deja gospodărie |
+| GET | `/api/v1/categories/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar categoriile gospodăriei userului, după nume; `403` fără gospodărie |
+| POST | `/api/v1/categories/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |
+| PATCH | `/api/v1/categories/<id>/` | admin, cu CSRF | corp `{name?, is_active?}`; `200` categoria; `404` categoria altei gospodării; nu există `DELETE` (categoriile se dezactivează) |
 
 Userul este întors ca `{id, username, email, first_name, last_name, role, household}`; `role` este
 `"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol). `household` este `null` sau
@@ -209,7 +237,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 57 de teste (`core`, `users`, `households`)
+  `user` (cont fără rol, parola `PASSWORD`). 87 de teste (`core`, `users`, `households`, `categories`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -242,7 +270,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/` | Componente de domeniu pentru gospodării (modalurile de creare și alăturare), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/`, `categories/` | Componente de domeniu (modalurile gospodăriei; modalul categoriei), folosite din `pages/` | Pot apela funcții din `api/` |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 
@@ -265,6 +293,10 @@ Se aplică fiecărei aplicații Django adăugate în `ourmoney/`:
 
 - ✅ `urls → views → services/selectors → models`; `serializers` sunt folosite doar de `views`
 - ✅ `views` validează input-ul și apelează un singur service (scriere) sau selector (citire)
+- ✅ Endpoint-urile se scriu cu `APIView`: o clasă per adresă (ex. `CategoryListView` cu `get`/`post`,
+  `CategoryDetailView` cu `patch`), rutele cu `path()` în `urls.py` al aplicației
+- ❌ Fără `ViewSet`/router sau generic views (`ListCreateAPIView` etc.): ascund pașii și ocolesc
+  `services`/`selectors` prin hook-uri (`perform_create`, `serializer.save()`)
 - ✅ Regulile de domeniu (invariante, calcule) stau în `models`; `services` doar orchestrează și persistă
 - ✅ O aplicație poate apela funcțiile publice din `services`/`selectors` ale altei aplicații
 - ❌ `views` nu interoghează direct ORM-ul și nu conțin logică de business
@@ -282,7 +314,9 @@ Se aplică fiecărei aplicații Django adăugate în `ourmoney/`:
 ## Principii cheie
 
 1. **Banii sunt `Decimal` + cod de valută (ISO 4217).** Niciodată `float`.
-2. **Izolarea datelor pe gospodărie.** Orice query pe date de domeniu filtrează după gospodăria utilizatorului autentificat (se aplică din milestone-ul Gospodării).
+2. **Izolarea datelor pe gospodărie.** Orice query pe date de domeniu filtrează după gospodăria utilizatorului autentificat: citirile
+   pornesc de la un selector filtrat pe `household_id`, iar o înregistrare a altei gospodării răspunde
+   `404`. Accesul se verifică cu permisiunile din `households/permissions.py`.
 3. **Modele bogate, services subțiri.** Invariantele trăiesc în modele.
 4. **Scrierile pe mai multe rânduri sunt atomice** (`transaction.atomic()`).
 5. **Endpoint-urile sunt private implicit.** Doar endpoint-urile marcate explicit `AllowAny` sunt publice.

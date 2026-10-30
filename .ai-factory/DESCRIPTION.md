@@ -15,9 +15,10 @@ Stadiul curent: fundațiile backend și frontend și autentificarea sunt gata. U
 singuri contul (fără rol), se autentifică prin sesiune Django și sunt direcționați după rol: fără rol →
 pagina de început, cu rol → aplicația (Acasă cu acțiuni rapide). Rolurile sunt `admin` și `user`.
 Un user fără rol își poate crea o gospodărie (devine admin) sau se poate alătura uneia cu codul de
-invitație (devine user); adminul vede codul în Setări sistem, unde există scheletul secțiunilor
-Nomenclatoare (Categorii, Subcategorii, Surse de venit, Gospodărie), Template-uri și Rapoarte.
-Nu există încă funcționalități de domeniu (cheltuieli, venituri).
+invitație (devine user); adminul vede codul în Setări sistem, cu secțiunile Nomenclatoare
+(Categorii, Subcategorii, Surse de venit, Gospodărie), Template-uri și Rapoarte. Funcționează
+Categorii: adminul adaugă, redenumește și dezactivează categoriile gospodăriei (datele sunt izolate
+pe gospodărie); celelalte secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
