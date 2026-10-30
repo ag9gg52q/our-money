@@ -18,7 +18,8 @@ Un user fără rol își poate crea o gospodărie (devine admin) sau se poate al
 invitație (devine user); adminul vede codul în Setări sistem, cu secțiunile Nomenclatoare
 (Categorii, Subcategorii, Surse de venit, Gospodărie), Template-uri și Rapoarte. Funcționează
 Categorii: adminul adaugă, redenumește și dezactivează categoriile gospodăriei (datele sunt izolate
-pe gospodărie); celelalte secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
+pe gospodărie), și Subcategorii: adminul alege o categorie activă și îi adaugă, redenumește și
+dezactivează subcategoriile; celelalte secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
