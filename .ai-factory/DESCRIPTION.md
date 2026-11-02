@@ -19,7 +19,8 @@ invitație (devine user); adminul vede codul în Setări sistem, cu secțiunile 
 (Categorii, Subcategorii, Surse de venit, Gospodărie), Template-uri și Rapoarte. Funcționează
 Categorii: adminul adaugă, redenumește și dezactivează categoriile gospodăriei (datele sunt izolate
 pe gospodărie), și Subcategorii: adminul alege o categorie activă și îi adaugă, redenumește și
-dezactivează subcategoriile; celelalte secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
+dezactivează subcategoriile, și Surse de venit: adminul adaugă, redenumește și dezactivează sursele
+de venit ale gospodăriei; celelalte secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
@@ -31,7 +32,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre.
 - **Venituri** — înregistrarea și lista veniturilor.
 - **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective.
-- **Categorii, subcategorii și persoane** — nomenclatoarele folosite la înregistrare.
+- **Categorii, subcategorii, surse de venit și persoane** — nomenclatoarele folosite la înregistrare.
 - **Rapoarte și grafice** — sumar lunar, pe categorii și persoane, venituri vs cheltuieli.
 - **Bugete** — buget lunar pe categorie, semnalare la depășire.
 - **Multi-valută și import/export** — sume în valute diferite, import CSV din extrase bancare, export CSV/Excel.

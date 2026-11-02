@@ -19,10 +19,12 @@ import SubcategoriesSection from './pages/settings/SubcategoriesSection'
 import SignupPage from './pages/SignupPage'
 import StartPage from './pages/StartPage'
 import StatusPage from './pages/StatusPage'
+import IncomeSourcesSection from './pages/settings/IncomeSourcesSection'
 
 const NOMENCLATOR_PAGES: Record<string, ReactNode> = {
   categorii: <CategoriesSection />,
   subcategorii: <SubcategoriesSection />,
+  'surse-venit': <IncomeSourcesSection />,
 }
 
 export default function App() {

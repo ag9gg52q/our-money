@@ -14,7 +14,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Acasă și Setări sistem** — pagina Acasă, scheletul Setărilor (tab-uri, meniul nomenclatoarelor)
 - [x] **Categorii** — adăugare, redenumire, dezactivare; doar adminul modifică
 - [x] **Subcategorii** — subcategoriile fiecărei categorii
-- [ ] **Surse de venit** — nomenclatorul surselor de venit
+- [x] **Surse de venit** — nomenclatorul surselor de venit
 - [ ] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
 - [ ] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
 - [ ] **Venituri** — înregistrarea și lista veniturilor
@@ -38,3 +38,4 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Acasă și Setări sistem | 2026-10-29 |
 | Categorii | 2026-10-29 |
 | Subcategorii | 2026-10-30 |
+| Surse de venit | 2026-11-02 |
