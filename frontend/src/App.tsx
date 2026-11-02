@@ -15,12 +15,14 @@ import CategoriesSection from './pages/settings/CategoriesSection'
 import ComingSoonSection from './pages/settings/ComingSoonSection'
 import { NOMENCLATORS } from './pages/settings/nomenclators'
 import NomenclatorsPage from './pages/settings/NomenclatorsPage'
+import SubcategoriesSection from './pages/settings/SubcategoriesSection'
 import SignupPage from './pages/SignupPage'
 import StartPage from './pages/StartPage'
 import StatusPage from './pages/StatusPage'
 
 const NOMENCLATOR_PAGES: Record<string, ReactNode> = {
   categorii: <CategoriesSection />,
+  subcategorii: <SubcategoriesSection />,
 }
 
 export default function App() {

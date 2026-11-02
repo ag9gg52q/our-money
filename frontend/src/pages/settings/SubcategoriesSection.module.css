@@ -1,0 +1,21 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.picker {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+.addButton {
+  min-height: 48px;
+}
+
+.link {
+  color: var(--color-accent);
+  font-weight: 800;
+}

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'users',
     'households',
     'categories',
+    'subcategories',
 ]
 
 AUTH_USER_MODEL = 'users.User'
