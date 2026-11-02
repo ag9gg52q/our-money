@@ -2,9 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-10-30 — subcategoriile: app-ul `subcategories` (API sub
-> `/api/v1/categories/<id>/subcategories/` și `/api/v1/subcategories/<id>/`), componenta `Select` și
-> ecranul Setări sistem → Nomenclatoare → Subcategorii (alegerea categoriei, listă, modal).
+> Ultima actualizare: 2026-11-02 — sursele de venit: app-ul `income_sources` (API sub
+> `/api/v1/income-sources/`) și ecranul Setări sistem → Nomenclatoare → Surse de venit (listă, modal).
 
 ## Prezentare generală
 
@@ -15,13 +14,14 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
   API-ul de autentificare cu sesiune: signup, login, logout, me) și `households` (modelul
   `Household`, crearea și alăturarea la o gospodărie, permisiunile pe gospodărie), `categories`
-  (categoriile de cheltuieli ale gospodăriei) și `subcategories` (subcategoriile fiecărei categorii).
+  (categoriile de cheltuieli ale gospodăriei), `subcategories` (subcategoriile fiecărei categorii) și
+  `income_sources` (sursele de venit ale gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
   plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin: codul de
   invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează
-  Categorii și Subcategorii, restul sunt „În curând”), Status și 404.
+  Categorii, Subcategorii și Surse de venit, Gospodărie e „În curând”), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -48,7 +48,8 @@ our-money/
 │   │   ├── urls.py                # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
 │   │   │                          #   api/v1/households/ → households.urls,
 │   │   │                          #   api/v1/categories/ → categories.urls,
-│   │   │                          #   api/v1/ → subcategories.urls
+│   │   │                          #   api/v1/ → subcategories.urls,
+│   │   │                          #   api/v1/income-sources/ → income_sources.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
 │   ├── core/                      # App comun (cross-cutting)
@@ -84,6 +85,19 @@ our-money/
 │   │   ├── urls.py                # 'categories/<uuid:category_id>/subcategories/' (subcategory-list),
 │   │   │                          #   'subcategories/<uuid:pk>/' (subcategory-detail)
 │   │   ├── migrations/            # 0001_initial — tabelul subcategories_subcategory
+│   │   └── tests/
+│   │       ├── test_models.py     # stare implicită, ordonare, constrângerea unică, CASCADE
+│   │       └── test_api.py        # listare, adăugare, editare, permisiuni, izolare, CSRF, 405
+│   ├── income_sources/            # Sursele de venit ale gospodăriei
+│   │   ├── models.py              # IncomeSource: id UUID, household (FK, CASCADE, related_name='income_sources'),
+│   │   │                          #   name (max 50), is_active, created_at; nume unic per gospodărie,
+│   │   │                          #   fără diferență de majuscule (UniqueConstraint cu Lower('name'))
+│   │   ├── selectors.py           # household_income_sources(): sursele de venit ale unei gospodării
+│   │   ├── services.py            # create_income_source(), update_income_source() (doar câmpurile primite)
+│   │   ├── serializers.py         # IncomeSourceSerializer: id (citire), name, is_active; nume duplicat → 400
+│   │   ├── views.py               # IncomeSourceListView (GET, POST), IncomeSourceDetailView (PATCH)
+│   │   ├── urls.py                # '' (income-source-list), '<uuid:pk>/' (income-source-detail)
+│   │   ├── migrations/            # 0001_initial — tabelul income_sources_incomesource
 │   │   └── tests/
 │   │       ├── test_models.py     # stare implicită, ordonare, constrângerea unică, CASCADE
 │   │       └── test_api.py        # listare, adăugare, editare, permisiuni, izolare, CSRF, 405
@@ -160,6 +174,9 @@ our-money/
 │       ├── subcategories/
 │       │   └── SubcategoryModal.tsx # Modalul subcategoriei (primește categoryId); stilurile din
 │       │                            #   categories/CategoryModal.module.css
+│       ├── income_sources/
+│       │   └── IncomeSourceModal.tsx # Modalul sursei de venit (denumire + „Activă” la editare); stilurile din
+│       │                             #   categories/CategoryModal.module.css
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
@@ -177,6 +194,8 @@ our-money/
 │       │   │   ├── SubcategoriesSection.tsx # Subcategorii: Select cu categoriile active + butonul de adăugare;
 │       │   │   │                          #   subcategoriile categoriei alese (tabel, aceleași stări);
 │       │   │   │                          #   SubcategoryModal; stilurile cardului din CategoriesSection.module.css
+│       │   │   ├── IncomeSourcesSection.tsx # Surse de venit: fetchIncomeSources(); aceleași stări și tabel ca
+│       │   │   │                          #   la Categorii; IncomeSourceModal; stilurile din CategoriesSection.module.css
 │       │   │   └── ComingSoonSection.tsx  # Secțiune temporară: titlu, descriere, „În curând”
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
@@ -189,6 +208,7 @@ our-money/
 │           ├── households.ts      # createHousehold(), joinHousehold() + tipul Household
 │           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           ├── subcategories.ts   # fetchSubcategories(), createSubcategory(), updateSubcategory() + tipul Subcategory
+│           ├── income_sources.ts  # fetchIncomeSources(), createIncomeSource(), updateIncomeSource() + tipul IncomeSource
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -213,6 +233,7 @@ our-money/
 | `households` | Gospodăriile | Modelul `Household` cu cod de invitație unic; API de creare și alăturare; permisiunile pe gospodărie |
 | `categories` | Categoriile de cheltuieli | `Category` unic per gospodărie; API de listare, adăugare, editare |
 | `subcategories` | Subcategoriile categoriilor | `Subcategory` unic per categorie; API de listare și adăugare pe categorie, editare |
+| `income_sources` | Sursele de venit | `IncomeSource` unic per gospodărie; API de listare, adăugare, editare |
 
 **Gospodării:** un user face parte din cel mult o gospodărie (`User.household`, `ForeignKey`).
 La ștergerea unei gospodării, membrii rămân fără gospodărie (`on_delete=SET_NULL`) și își pierd
@@ -237,6 +258,9 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | GET | `/api/v1/categories/<id>/subcategories/` | membru al gospodăriei | `200 [{id, name, is_active}]` — subcategoriile categoriei, după nume; `404` categoria altei gospodării |
 | POST | `/api/v1/categories/<id>/subcategories/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat în categorie (sub `name`); `404` categoria altei gospodării |
 | PATCH | `/api/v1/subcategories/<id>/` | admin, cu CSRF | corp `{name?, is_active?}`; `200` subcategoria; `404` subcategoria altei gospodării; categoria nu se poate schimba; nu există `DELETE` |
+| GET | `/api/v1/income-sources/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar sursele de venit ale gospodăriei, după nume; `403` fără gospodărie |
+| POST | `/api/v1/income-sources/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |
+| PATCH | `/api/v1/income-sources/<id>/` | admin, cu CSRF | corp `{name?, is_active?}`; `200` sursa de venit; `404` sursa altei gospodării; nu există `DELETE` (se dezactivează) |
 
 Userul este întors ca `{id, username, email, first_name, last_name, role, household}`; `role` este
 `"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol). `household` este `null` sau
@@ -267,7 +291,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 122 de teste (`core`, `users`, `households`, `categories`, `subcategories`)
+  `user` (cont fără rol, parola `PASSWORD`). 152 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -300,7 +324,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Select`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/`, `categories/`, `subcategories/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/`, `categories/`, `subcategories/`, `income_sources/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit), folosite din `pages/` | Pot apela funcții din `api/` |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 
