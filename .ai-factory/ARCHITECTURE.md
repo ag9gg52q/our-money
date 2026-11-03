@@ -2,8 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-02 — sursele de venit: app-ul `income_sources` (API sub
-> `/api/v1/income-sources/`) și ecranul Setări sistem → Nomenclatoare → Surse de venit (listă, modal).
+> Ultima actualizare: 2026-11-03 — gospodăria curentă: API sub `/api/v1/households/current/` (citire,
+> redenumire, promovarea unui membru la admin) și ecranul Setări sistem → Nomenclatoare → Gospodărie
+> (codul de invitație, mutat din antetul Setărilor, și lista membrilor).
 
 ## Prezentare generală
 
@@ -13,15 +14,16 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   cu PostgreSQL ca bază de date. Configurarea vine din variabile de mediu (`.env`). App-uri proprii:
   `core` (endpoint-ul public `GET /api/v1/health/`) și `users` (modelul de utilizator propriu și
   API-ul de autentificare cu sesiune: signup, login, logout, me) și `households` (modelul
-  `Household`, crearea și alăturarea la o gospodărie, permisiunile pe gospodărie), `categories`
+  `Household`, crearea și alăturarea la o gospodărie, gospodăria curentă cu membrii ei, redenumirea,
+  promovarea unui membru la admin, permisiunile pe gospodărie), `categories`
   (categoriile de cheltuieli ale gospodăriei), `subcategories` (subcategoriile fiecărei categorii) și
   `income_sources` (sursele de venit ale gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
-  plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin: codul de
-  invitație, tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează
-  Categorii, Subcategorii și Surse de venit, Gospodărie e „În curând”), Status și 404.
+  plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin:
+  tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează Categorii,
+  Subcategorii, Surse de venit și Gospodărie — codul de invitație și membrii), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -104,14 +106,23 @@ our-money/
 │   ├── households/                # Gospodării
 │   │   ├── models.py              # Household: id UUID, name, invite_code unic (XXXX-XXXX), created_at;
 │   │   │                          #   generate_invite_code() cu `secrets`, fără 0/O/1/I/L
+│   │   ├── selectors.py           # household_members(): membrii gospodăriei, adminii primii, apoi după username
 │   │   ├── serializers.py         # HouseholdSerializer: name (intrare), id + invite_code (doar ieșire);
 │   │   │                          #   respinge userul care are deja gospodărie;
 │   │   │                          #   JoinHouseholdSerializer: invite_code normalizat (majuscule,
-│   │   │                          #   cu cratimă), caută gospodăria → attrs['household']
+│   │   │                          #   cu cratimă), caută gospodăria → attrs['household'];
+│   │   │                          #   HouseholdMemberSerializer (doar ieșire: id, username, nume, role);
+│   │   │                          #   HouseholdDetailSerializer: name editabil, invite_code doar pentru
+│   │   │                          #   admin (altfel null), members din household_members()
 │   │   ├── services.py            # create_household(): creează gospodăria, userul devine admin (atomic);
-│   │   │                          #   join_household(): userul intră în gospodărie cu rolul user
-│   │   ├── views.py               # HouseholdCreateView (POST), HouseholdJoinView (POST)
-│   │   ├── urls.py                # '' (name='household-create'), 'join/' (name='household-join')
+│   │   │                          #   join_household(): userul intră în gospodărie cu rolul user;
+│   │   │                          #   make_admin(): user → admin (deja admin → ValidationError);
+│   │   │                          #   update_household(): schimbă numele
+│   │   ├── views.py               # HouseholdCreateView (POST), HouseholdJoinView (POST),
+│   │   │                          #   CurrentHouseholdView (GET membri, PATCH admin), MakeAdminView (POST)
+│   │   ├── urls.py                # '' (household-create), 'join/' (household-join), 'current/'
+│   │   │                          #   (household-current), 'current/members/<uuid:pk>/make-admin/'
+│   │   │                          #   (household-member-make-admin)
 │   │   ├── permissions.py         # IsHouseholdMember; IsHouseholdAdminOrReadOnly (membrii citesc,
 │   │   │                          #   adminul scrie) — folosite de API-urile datelor gospodăriei
 │   │   ├── signals.py             # pre_delete: membrii gospodăriei șterse își pierd rolul
@@ -119,7 +130,8 @@ our-money/
 │   │   ├── migrations/            # 0001_initial — tabelul households_household
 │   │   └── tests/
 │   │       ├── test_models.py     # formatul codului, unicitate, legătura cu userii, ștergerea
-│   │       └── test_api.py        # creare, validarea numelui, user deja în gospodărie, auth, CSRF, /me/
+│   │       ├── test_api.py        # creare, validarea numelui, user deja în gospodărie, auth, CSRF, /me/
+│   │       └── test_current_api.py # gospodăria curentă: citire, redenumire, promovare, permisiuni, izolare
 │   └── users/                     # Utilizatori și autentificare
 │       ├── models.py              # User (AbstractUser): id UUID, role admin/user/'' (implicit '' = fără rol),
 │       │                          #   household (FK opțional, SET_NULL, related_name='members'), is_admin;
@@ -180,12 +192,14 @@ our-money/
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
-│       │   └── HouseholdForm.module.css # Stiluri comune formularelor de gospodărie
+│       │   ├── RenameHouseholdModal.tsx # Redenumirea gospodăriei: nume → renameHousehold() → onSaved(gospodăria)
+│       │   ├── MakeAdminModal.tsx       # Confirmarea promovării unui membru → makeAdmin() → onSaved(membrul)
+│       │   └── HouseholdForm.module.css # Stiluri comune formularelor și modalurilor de gospodărie
 │       ├── pages/
 │       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială / venit
 │       │   │                      #   „În curând”, Setări sistem pentru admin), bloc gol pentru rapoarte
 │       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
-│       │   ├── SettingsPage.tsx   # Layout Setări sistem: codul de invitație + Copiază, tab-uri, <Outlet />
+│       │   ├── SettingsPage.tsx   # Layout Setări sistem: titlu, tab-uri, <Outlet />
 │       │   ├── settings/
 │       │   │   ├── nomenclators.ts        # NOMENCLATORS: Categorii, Subcategorii, Surse de venit, Gospodărie
 │       │   │   ├── NomenclatorsPage.tsx   # Layout: meniul lateral al nomenclatoarelor + <Outlet />
@@ -196,6 +210,11 @@ our-money/
 │       │   │   │                          #   SubcategoryModal; stilurile cardului din CategoriesSection.module.css
 │       │   │   ├── IncomeSourcesSection.tsx # Surse de venit: fetchIncomeSources(); aceleași stări și tabel ca
 │       │   │   │                          #   la Categorii; IncomeSourceModal; stilurile din CategoriesSection.module.css
+│       │   │   ├── HouseholdSection.tsx   # Gospodărie: fetchCurrentHousehold(); numele ca titlu + Redenumește
+│       │   │   │                          #   (RenameHouseholdModal, apoi refreshUser() pentru antet), codul de
+│       │   │   │                          #   invitație + Copiază, tabelul membrilor (utilizator, rol) cu
+│       │   │   │                          #   „Fă administrator” la membrii cu rolul user (MakeAdminModal);
+│       │   │   │                          #   stilurile din CategoriesSection.module.css + HouseholdSection.module.css
 │       │   │   └── ComingSoonSection.tsx  # Secțiune temporară: titlu, descriere, „În curând”
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
 │       │   ├── SignupPage.tsx     # Formular signup (utilizator, parolă, confirmare); redirect la /login
@@ -205,7 +224,9 @@ our-money/
 │       └── api/
 │           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
 │           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
-│           ├── households.ts      # createHousehold(), joinHousehold() + tipul Household
+│           ├── households.ts      # createHousehold(), joinHousehold(), fetchCurrentHousehold(),
+│           │                      #   renameHousehold(), makeAdmin() + tipurile Household,
+│           │                      #   HouseholdDetails, HouseholdMember
 │           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           ├── subcategories.ts   # fetchSubcategories(), createSubcategory(), updateSubcategory() + tipul Subcategory
 │           ├── income_sources.ts  # fetchIncomeSources(), createIncomeSource(), updateIncomeSource() + tipul IncomeSource
@@ -230,7 +251,7 @@ our-money/
 | `ourmoney` (pachet de configurare) | Setări, rutare, entry points ASGI/WSGI | Setări din `.env`, DRF configurat |
 | `core` | Funcționalități comune întregului proiect | Doar endpoint-ul de health; fără modele (deci fără `models.py`, `admin.py`, `migrations/`) |
 | `users` | Modelul de utilizator și autentificarea | `User` cu `id` UUID, `role` (`admin` / `user` / gol; contul nou nu are rol) și `household` (opțional); API de sesiune |
-| `households` | Gospodăriile | Modelul `Household` cu cod de invitație unic; API de creare și alăturare; permisiunile pe gospodărie |
+| `households` | Gospodăriile | Modelul `Household` cu cod de invitație unic; API de creare, alăturare, citirea gospodăriei curente cu membrii, redenumire, promovare la admin; permisiunile pe gospodărie |
 | `categories` | Categoriile de cheltuieli | `Category` unic per gospodărie; API de listare, adăugare, editare |
 | `subcategories` | Subcategoriile categoriilor | `Subcategory` unic per categorie; API de listare și adăugare pe categorie, editare |
 | `income_sources` | Sursele de venit | `IncomeSource` unic per gospodărie; API de listare, adăugare, editare |
@@ -251,6 +272,9 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | POST | `/api/v1/auth/logout/` | autentificat, cu CSRF | `204` |
 | GET | `/api/v1/auth/me/` | autentificat | `200` userul curent; `403` fără sesiune |
 | POST | `/api/v1/households/` | autentificat, cu CSRF | `201 {id, name, invite_code}` — userul devine `admin` al gospodăriei; `400` nume invalid sau userul are deja gospodărie |
+| GET | `/api/v1/households/current/` | membru al gospodăriei | `200 {id, name, invite_code, members: [{id, username, first_name, last_name, role}]}` — `invite_code` doar pentru admin (altfel `null`); membrii: adminii primii, apoi după username; `403` fără gospodărie |
+| PATCH | `/api/v1/households/current/` | admin, cu CSRF | corp `{name}`; `200` gospodăria (aceeași formă ca la GET); `400` nume invalid (sub `name`); `403` membru |
+| POST | `/api/v1/households/current/members/<id>/make-admin/` | admin, cu CSRF | fără corp; `200` membrul cu `role: "admin"`; `400 {non_field_errors}` membrul este deja admin; `404` membrul altei gospodării. Rolul admin nu se poate retrage |
 | POST | `/api/v1/households/join/` | autentificat, cu CSRF | corp `{invite_code}` (acceptat cu litere mici, fără cratimă, cu spații); `200 {id, name}` — userul devine `user` al gospodăriei; `400` cod invalid (sub `invite_code`) sau userul are deja gospodărie |
 | GET | `/api/v1/categories/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar categoriile gospodăriei userului, după nume; `403` fără gospodărie |
 | POST | `/api/v1/categories/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |
@@ -291,7 +315,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 152 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`)
+  `user` (cont fără rol, parola `PASSWORD`). 175 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri

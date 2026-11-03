@@ -15,7 +15,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Categorii** — adăugare, redenumire, dezactivare; doar adminul modifică
 - [x] **Subcategorii** — subcategoriile fiecărei categorii
 - [x] **Surse de venit** — nomenclatorul surselor de venit
-- [ ] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
+- [x] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
 - [ ] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
 - [ ] **Venituri** — înregistrarea și lista veniturilor
 - [ ] **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective de economisire
@@ -39,3 +39,4 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Categorii | 2026-10-29 |
 | Subcategorii | 2026-10-30 |
 | Surse de venit | 2026-11-02 |
+| Gospodărie | 2026-11-03 |

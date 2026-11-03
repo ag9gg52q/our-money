@@ -60,9 +60,11 @@ our-money/
 │   │   └── tests/            # teste pytest: model, API
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
-│   │   ├── serializers.py    # validarea creării (nume) și a alăturării (cod de invitație)
-│   │   ├── services.py       # create_household() — admin; join_household() — user
-│   │   ├── views.py          # creare gospodărie și alăturare cu cod (POST)
+│   │   ├── selectors.py      # household_members() — membrii gospodăriei, ordonați
+│   │   ├── serializers.py    # creare, alăturare, gospodăria curentă cu membrii
+│   │   ├── services.py       # create_household() — admin; join_household() — user;
+│   │   │                     #   make_admin(), update_household()
+│   │   ├── views.py          # creare, alăturare, gospodăria curentă (GET, PATCH), promovare la admin
 │   │   ├── urls.py           # rutele /api/v1/households/
 │   │   ├── permissions.py    # IsHouseholdMember, IsHouseholdAdminOrReadOnly
 │   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
@@ -87,9 +89,9 @@ our-money/
 │       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── subcategories/    # Modalul de adăugare / editare a unei subcategorii
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit
-│       ├── households/       # Modalurile de creare și alăturare la o gospodărie
+│       ├── households/       # Modalurile gospodăriei: creare, alăturare, redenumire, promovare la admin
 │       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound);
-│       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit funcționale)
+│       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit, Gospodărie)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
@@ -116,7 +118,7 @@ our-money/
 | `ourmoney/users/models.py` | Modelul de utilizator (`AUTH_USER_MODEL = 'users.User'`) |
 | `ourmoney/households/models.py` | Modelul `Household` și generarea codului de invitație |
 | `ourmoney/users/views.py` | API-ul de autentificare `/api/v1/auth/` (csrf, signup, login, logout, me) |
-| `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare, alăturare) |
+| `ourmoney/households/views.py` | API-ul gospodăriilor `/api/v1/households/` (creare, alăturare, gospodăria curentă, redenumire, promovare la admin) |
 | `ourmoney/categories/views.py` | API-ul categoriilor `/api/v1/categories/` (listă, adăugare, editare) |
 | `ourmoney/subcategories/views.py` | API-ul subcategoriilor `/api/v1/categories/<id>/subcategories/` (listă, adăugare), `/api/v1/subcategories/<id>/` (editare) |
 | `ourmoney/income_sources/views.py` | API-ul surselor de venit `/api/v1/income-sources/` (listă, adăugare, editare) |
