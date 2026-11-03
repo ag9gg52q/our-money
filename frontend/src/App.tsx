@@ -16,15 +16,17 @@ import ComingSoonSection from './pages/settings/ComingSoonSection'
 import { NOMENCLATORS } from './pages/settings/nomenclators'
 import NomenclatorsPage from './pages/settings/NomenclatorsPage'
 import SubcategoriesSection from './pages/settings/SubcategoriesSection'
+import IncomeSourcesSection from './pages/settings/IncomeSourcesSection'
+import HouseholdSection from './pages/settings/HouseholdSection'
 import SignupPage from './pages/SignupPage'
 import StartPage from './pages/StartPage'
 import StatusPage from './pages/StatusPage'
-import IncomeSourcesSection from './pages/settings/IncomeSourcesSection'
 
 const NOMENCLATOR_PAGES: Record<string, ReactNode> = {
   categorii: <CategoriesSection />,
   subcategorii: <SubcategoriesSection />,
   'surse-venit': <IncomeSourcesSection />,
+  gospodarie: <HouseholdSection />,
 }
 
 export default function App() {
