@@ -20,7 +20,8 @@ invitație (devine user); adminul are Setări sistem, cu secțiunile Nomenclatoa
 Categorii: adminul adaugă, redenumește și dezactivează categoriile gospodăriei (datele sunt izolate
 pe gospodărie), și Subcategorii: adminul alege o categorie activă și îi adaugă, redenumește și
 dezactivează subcategoriile, și Surse de venit: adminul adaugă, redenumește și dezactivează sursele
-de venit ale gospodăriei, și Gospodărie: codul de invitație și membrii gospodăriei; celelalte
+de venit ale gospodăriei, și Gospodărie: adminul redenumește gospodăria, vede codul de invitație și membrii și poate
+face administrator un membru (rolul nu se mai retrage); celelalte
 secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 

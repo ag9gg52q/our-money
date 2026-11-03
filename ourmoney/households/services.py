@@ -24,7 +24,7 @@ def join_household(*, user, household):
 
 def make_admin(*, member):
     if member.role == User.Role.ADMIN:
-        raise ValidationError('Membrul este deja administrator')
+        raise ValidationError({'non_field_errors': ['Membrul este deja administrator.']})
     member.role = User.Role.ADMIN
     member.save(update_fields=['role'])
     return member

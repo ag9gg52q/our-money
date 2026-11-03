@@ -89,7 +89,7 @@ our-money/
 │       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── subcategories/    # Modalul de adăugare / editare a unei subcategorii
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit
-│       ├── households/       # Modalurile de creare și alăturare la o gospodărie
+│       ├── households/       # Modalurile gospodăriei: creare, alăturare, redenumire, promovare la admin
 │       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound);
 │       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit, Gospodărie)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint

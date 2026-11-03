@@ -204,7 +204,7 @@ def test_make_admin_on_admin_returns_400(admin, member):
     response = client_for(admin).post(make_admin_url(member.id))
 
     assert response.status_code == 400
-    assert response.json() == ['Membrul este deja administrator']
+    assert response.json() == {'non_field_errors': ['Membrul este deja administrator.']}
 
 
 def test_admin_cannot_make_self_admin_again(admin):

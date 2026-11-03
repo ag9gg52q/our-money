@@ -192,7 +192,9 @@ our-money/
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
-│       │   └── HouseholdForm.module.css # Stiluri comune formularelor de gospodărie
+│       │   ├── RenameHouseholdModal.tsx # Redenumirea gospodăriei: nume → renameHousehold() → onSaved(gospodăria)
+│       │   ├── MakeAdminModal.tsx       # Confirmarea promovării unui membru → makeAdmin() → onSaved(membrul)
+│       │   └── HouseholdForm.module.css # Stiluri comune formularelor și modalurilor de gospodărie
 │       ├── pages/
 │       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială / venit
 │       │   │                      #   „În curând”, Setări sistem pentru admin), bloc gol pentru rapoarte
@@ -208,8 +210,10 @@ our-money/
 │       │   │   │                          #   SubcategoryModal; stilurile cardului din CategoriesSection.module.css
 │       │   │   ├── IncomeSourcesSection.tsx # Surse de venit: fetchIncomeSources(); aceleași stări și tabel ca
 │       │   │   │                          #   la Categorii; IncomeSourceModal; stilurile din CategoriesSection.module.css
-│       │   │   ├── HouseholdSection.tsx   # Gospodărie: fetchCurrentHousehold(); numele ca titlu, codul de
-│       │   │   │                          #   invitație + Copiază, tabelul membrilor (utilizator, rol);
+│       │   │   ├── HouseholdSection.tsx   # Gospodărie: fetchCurrentHousehold(); numele ca titlu + Redenumește
+│       │   │   │                          #   (RenameHouseholdModal, apoi refreshUser() pentru antet), codul de
+│       │   │   │                          #   invitație + Copiază, tabelul membrilor (utilizator, rol) cu
+│       │   │   │                          #   „Fă administrator” la membrii cu rolul user (MakeAdminModal);
 │       │   │   │                          #   stilurile din CategoriesSection.module.css + HouseholdSection.module.css
 │       │   │   └── ComingSoonSection.tsx  # Secțiune temporară: titlu, descriere, „În curând”
 │       │   ├── LoginPage.tsx      # Formular login; mesaj după signup; redirecționarea o face paznicul
@@ -270,7 +274,7 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | POST | `/api/v1/households/` | autentificat, cu CSRF | `201 {id, name, invite_code}` — userul devine `admin` al gospodăriei; `400` nume invalid sau userul are deja gospodărie |
 | GET | `/api/v1/households/current/` | membru al gospodăriei | `200 {id, name, invite_code, members: [{id, username, first_name, last_name, role}]}` — `invite_code` doar pentru admin (altfel `null`); membrii: adminii primii, apoi după username; `403` fără gospodărie |
 | PATCH | `/api/v1/households/current/` | admin, cu CSRF | corp `{name}`; `200` gospodăria (aceeași formă ca la GET); `400` nume invalid (sub `name`); `403` membru |
-| POST | `/api/v1/households/current/members/<id>/make-admin/` | admin, cu CSRF | fără corp; `200` membrul cu `role: "admin"`; `400` membrul este deja admin; `404` membrul altei gospodării. Rolul admin nu se poate retrage |
+| POST | `/api/v1/households/current/members/<id>/make-admin/` | admin, cu CSRF | fără corp; `200` membrul cu `role: "admin"`; `400 {non_field_errors}` membrul este deja admin; `404` membrul altei gospodării. Rolul admin nu se poate retrage |
 | POST | `/api/v1/households/join/` | autentificat, cu CSRF | corp `{invite_code}` (acceptat cu litere mici, fără cratimă, cu spații); `200 {id, name}` — userul devine `user` al gospodăriei; `400` cod invalid (sub `invite_code`) sau userul are deja gospodărie |
 | GET | `/api/v1/categories/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar categoriile gospodăriei userului, după nume; `403` fără gospodărie |
 | POST | `/api/v1/categories/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |

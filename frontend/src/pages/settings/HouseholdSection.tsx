@@ -5,7 +5,10 @@ import {
   type HouseholdMember,
   fetchCurrentHousehold,
 } from '../../api/households'
+import { useAuth } from '../../auth/useAuth'
 import Button from '../../components/Button/Button'
+import MakeAdminModal from '../../households/MakeAdminModal'
+import RenameHouseholdModal from '../../households/RenameHouseholdModal'
 import styles from './CategoriesSection.module.css'
 import householdStyles from './HouseholdSection.module.css'
 
@@ -20,10 +23,21 @@ function fullName(member: HouseholdMember) {
   return [member.first_name, member.last_name].filter(Boolean).join(' ')
 }
 
+// Aceeași ordine ca în backend: adminii primii, apoi după username.
+function sortMembers(members: HouseholdMember[]) {
+  return [...members].sort(
+    (a, b) =>
+      a.role.localeCompare(b.role) || a.username.localeCompare(b.username),
+  )
+}
+
 export default function HouseholdSection() {
+  const { refreshUser } = useAuth()
   const [household, setHousehold] = useState<HouseholdDetails | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [copied, setCopied] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [promoting, setPromoting] = useState<HouseholdMember | null>(null)
 
   useEffect(() => {
     let ignore = false
@@ -49,6 +63,27 @@ export default function HouseholdSection() {
     setCopied(true)
   }
 
+  function handleRenamed(saved: HouseholdDetails) {
+    setHousehold(saved)
+    setIsRenaming(false)
+    // Antetul aplicației afișează numele gospodăriei din /me/.
+    void refreshUser()
+  }
+
+  function handlePromoted(saved: HouseholdMember) {
+    setHousehold((prev) =>
+      prev
+        ? {
+            ...prev,
+            members: sortMembers(
+              prev.members.map((m) => (m.id === saved.id ? saved : m)),
+            ),
+          }
+        : prev,
+    )
+    setPromoting(null)
+  }
+
   return (
     <section className={styles.card}>
       <div className={styles.header}>
@@ -58,6 +93,15 @@ export default function HouseholdSection() {
             Codul de invitație și persoanele din gospodărie.
           </p>
         </div>
+        {household && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsRenaming(true)}
+          >
+            Redenumește
+          </Button>
+        )}
       </div>
 
       {loadState === 'loading' && (
@@ -125,7 +169,17 @@ export default function HouseholdSection() {
                           {ROLE_LABELS[member.role]}
                         </span>
                       </td>
-                      <td className={styles.actionsCell} />
+                      <td className={styles.actionsCell}>
+                        {member.role === 'user' && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setPromoting(member)}
+                          >
+                            Fă administrator
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -133,6 +187,22 @@ export default function HouseholdSection() {
             </div>
           </div>
         </>
+      )}
+
+      {household && isRenaming && (
+        <RenameHouseholdModal
+          household={household}
+          onClose={() => setIsRenaming(false)}
+          onSaved={handleRenamed}
+        />
+      )}
+
+      {promoting && (
+        <MakeAdminModal
+          member={promoting}
+          onClose={() => setPromoting(null)}
+          onSaved={handlePromoted}
+        />
       )}
     </section>
   )
