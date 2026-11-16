@@ -2,9 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-13 — aplicația `expenses`: modelul `Expense` și API-ul
-> `/api/v1/expenses/` (listă cu filtre și total, adăugare, editare, ștergere). Ecranul din frontend
-> nu există încă.
+> Ultima actualizare: 2026-11-16 — ecranul Cheltuieli (`/expenses`): listă pe lună cu filtre în URL
+> și total, modalurile de adăugare / editare / ștergere; câmpurile obligatorii goale ale cheltuielii
+> primesc mesajul „Acest câmp nu poate fi gol.”.
 
 ## Prezentare generală
 
@@ -17,13 +17,14 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `Household`, crearea și alăturarea la o gospodărie, gospodăria curentă cu membrii ei, redenumirea,
   promovarea unui membru la admin, permisiunile pe gospodărie), `categories`
   (categoriile de cheltuieli ale gospodăriei), `subcategories` (subcategoriile fiecărei categorii) și
-  `income_sources` (sursele de venit ale gospodăriei) și `expenses` (cheltuielile gospodăriei, doar API).
+  `income_sources` (sursele de venit ale gospodăriei) și `expenses` (cheltuielile gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
   plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin:
   tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează Categorii,
-  Subcategorii, Surse de venit și Gospodărie — codul de invitație și membrii), Status și 404.
+  Subcategorii, Surse de venit și Gospodărie — codul de invitație și membrii), Cheltuieli (pentru
+  orice membru: listă pe lună cu filtre și total, adăugare, editare, ștergere), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -116,6 +117,7 @@ our-money/
 │   │   ├── serializers.py         # ExpenseSerializer: id-uri + person_name / category_name / subcategory_name;
 │   │   │                          #   persoană, categorie, subcategorie doar din gospodărie și active (la editare
 │   │   │                          #   se poate păstra valoarea curentă); subcategoria trebuie să fie a categoriei;
+│   │   │                          #   câmpurile obligatorii goale ('' / null / lipsă) → „Acest câmp nu poate fi gol.”;
 │   │   │                          #   ExpenseFilterSerializer: parametrii de filtrare, date_from <= date_to
 │   │   ├── views.py               # ExpenseListView (GET, POST), ExpenseDetailView (PATCH, DELETE) — orice membru
 │   │   ├── urls.py                # '' (expense-list), '<uuid:pk>/' (expense-detail)
@@ -178,7 +180,7 @@ our-money/
 │       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
 │       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
 │       │                          #   RequireAuth → RequireNoRole → /start;
-│       │                          #   RequireAuth → RequireRole → Layout → /, /status, *;
+│       │                          #   RequireAuth → RequireRole → Layout → /, /status, /expenses, *;
 │       │                          #   în Layout, RequireRole role="admin" → /settings, cu copiii
 │       │                          #   nomenclatoare/<NOMENCLATORS>, template-uri, rapoarte (index → redirect)
 │       ├── index.css              # Variabilele de design (culori, inclusiv info/warm, rază, font) + stiluri globale
@@ -191,14 +193,16 @@ our-money/
 │       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start; cu `role`, alt rol → /
 │       │   └── RequireNoRole.tsx  # Paznic: logat cu rol → /
 │       ├── components/
-│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu Acasă + Setări sistem pentru admin,
+│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu Acasă, Cheltuieli + Setări sistem pentru admin,
 │       │   │                      #   rol, nume, Ieșire) + <Outlet />
-│       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose
+│       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose;
+│       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
-│       │   ├── Button/            # Buton primary / secondary (CSS Module)
+│       │   ├── Button/            # Buton primary / secondary / danger (CSS Module)
 │       │   ├── Select/            # Dropdown propriu (combobox + listbox): etichetă, listă stilizată,
-│       │   │                      #   tastatură (săgeți, Home/End, Enter, Esc), închidere la click în afară
+│       │   │                      #   tastatură (săgeți, Home/End, Enter, Esc), închidere la click în afară;
+│       │   │                      #   placeholder, mesaj de eroare, autoFocus (prin data-autofocus)
 │       │   └── TextField/         # Etichetă + input + mesaj de eroare (CSS Module)
 │       ├── categories/
 │       │   └── CategoryModal.tsx  # Modalul de adăugare / editare: denumire (+ bifa „Activă” la editare)
@@ -209,6 +213,12 @@ our-money/
 │       ├── income_sources/
 │       │   └── IncomeSourceModal.tsx # Modalul sursei de venit (denumire + „Activă” la editare); stilurile din
 │       │                             #   categories/CategoryModal.module.css
+│       ├── expenses/
+│       │   ├── ExpenseModal.tsx   # Adăugare / editare: dată (implicit azi), categorie → subcategoriile ei, persoană
+│       │   │                      #   (implicit userul curent), notă, sumă cu virgulă (trimisă cu punct);
+│       │   │                      #   opțiunile active + valoarea curentă la editare; erori pe câmp → onSaved()
+│       │   ├── DeleteExpenseModal.tsx # Confirmarea ștergerii (sumă, dată, categorie) → deleteExpense() → onDeleted()
+│       │   └── ExpenseModal.module.css # Stiluri comune celor două modale
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
@@ -218,6 +228,9 @@ our-money/
 │       ├── pages/
 │       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială / venit
 │       │   │                      #   „În curând”, Setări sistem pentru admin), bloc gol pentru rapoarte
+│       │   ├── ExpensesPage.tsx   # Cheltuieli: filtrele în URL (?month, ?category, ?person), luna cu săgeți,
+│       │   │                      #   tabel (dată, categorie / subcategorie, notă, persoană, sumă) cu total;
+│       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
 │       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
 │       │   ├── SettingsPage.tsx   # Layout Setări sistem: titlu, tab-uri, <Outlet />
 │       │   ├── settings/
@@ -241,6 +254,10 @@ our-money/
 │       │   ├── AuthPage.module.css # Stiluri comune formularelor (form, alerte)
 │       │   ├── StatusPage.tsx     # Apelează fetchHealth(); stări loading / ok / error
 │       │   └── NotFoundPage.tsx
+│       ├── utils/
+│       │   ├── format.ts          # formatAmount() („1.234,50 lei”), formatDate() — Intl, ro-RO
+│       │   └── months.ts          # Luni ca text 'YYYY-MM': currentMonth(), today(), shiftMonth(), monthRange(),
+│       │                          #   formatMonth(), isValidMonth()
 │       └── api/
 │           ├── client.ts          # apiFetch() (JSON, CSRF, ApiError), getErrorMessage()
 │           ├── auth.ts            # csrf, signup, login, logout, fetchCurrentUser + tipul User
@@ -250,6 +267,8 @@ our-money/
 │           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           ├── subcategories.ts   # fetchSubcategories(), createSubcategory(), updateSubcategory() + tipul Subcategory
 │           ├── income_sources.ts  # fetchIncomeSources(), createIncomeSource(), updateIncomeSource() + tipul IncomeSource
+│           ├── expenses.ts        # fetchExpenses(filtre), createExpense(), updateExpense(), deleteExpense() + tipurile
+│           │                      #   Expense, ExpenseList, ExpenseFilters, ExpenseInput
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -340,7 +359,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 247 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`)
+  `user` (cont fără rol, parola `PASSWORD`). 258 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -373,7 +392,8 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Select`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/`, `categories/`, `subcategories/`, `income_sources/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/`, `categories/`, `subcategories/`, `income_sources/`, `expenses/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit, cheltuielii), folosite din `pages/` | Pot apela funcții din `api/` |
+| `utils/` | Funcții pure de formatare (sume, date) și de lucru cu lunile | Fără React, fără API |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |
 

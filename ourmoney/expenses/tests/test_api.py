@@ -232,7 +232,19 @@ def test_create_without_required_field_returns_400(admin, subcategory, field):
     response = client_for(admin).post(LIST_URL, data, format='json')
 
     assert response.status_code == 400
-    assert field in response.json()
+    assert response.json()[field] == ['Acest câmp nu poate fi gol.']
+    assert Expense.objects.count() == 0
+
+
+@pytest.mark.parametrize('field', ['date', 'person', 'category', 'subcategory', 'amount'])
+@pytest.mark.parametrize('value', ['', None])
+def test_create_with_empty_required_field_returns_400(admin, subcategory, field, value):
+    data = payload(admin, subcategory, **{field: value})
+
+    response = client_for(admin).post(LIST_URL, data, format='json')
+
+    assert response.status_code == 400
+    assert response.json()[field] == ['Acest câmp nu poate fi gol.']
     assert Expense.objects.count() == 0
 
 
@@ -567,6 +579,13 @@ def test_edit_invalid_amount_returns_400(admin, expense):
 
     assert response.status_code == 400
     assert 'amount' in response.json()
+
+
+def test_edit_with_empty_field_returns_400(admin, expense):
+    response = client_for(admin).patch(detail_url(expense.id), {'amount': ''}, format='json')
+
+    assert response.status_code == 400
+    assert response.json() == {'amount': ['Acest câmp nu poate fi gol.']}
 
 
 def test_other_household_cannot_edit(other_admin, expense):

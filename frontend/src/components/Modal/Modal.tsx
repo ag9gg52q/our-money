@@ -15,6 +15,8 @@ export default function Modal({ title, onClose, children }: ModalProps) {
   useEffect(() => {
     const dialog = dialogRef.current
     dialog?.showModal()
+    // showModal() pune focusul pe primul câmp; un câmp marcat cu data-autofocus îl preia.
+    dialog?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
     return () => dialog?.close()
   }, [])
 

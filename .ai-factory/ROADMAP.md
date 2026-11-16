@@ -16,7 +16,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Subcategorii** — subcategoriile fiecărei categorii
 - [x] **Surse de venit** — nomenclatorul surselor de venit
 - [x] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
-- [ ] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
+- [x] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
 - [ ] **Venituri** — înregistrarea și lista veniturilor
 - [ ] **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective de economisire
 - [ ] **Dashboard și rapoarte** — sumar lunar, pe categorii și persoane, venituri vs cheltuieli, grafice

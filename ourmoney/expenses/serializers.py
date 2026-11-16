@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -7,6 +8,10 @@ from households.selectors import household_members
 from subcategories.selectors import household_subcategories
 
 from .models import Expense
+
+REQUIRED_FIELDS = ('date', 'amount', 'person', 'category', 'subcategory')
+EMPTY_MESSAGE = 'Acest câmp nu poate fi gol.'
+EMPTY_ERRORS = {'required': EMPTY_MESSAGE, 'null': EMPTY_MESSAGE}
 
 
 def with_current(queryset, current_id):
@@ -35,7 +40,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'subcategory_name',
         )
         read_only_fields = ('id',)
-        extra_kwargs = {'amount': {'min_value': Decimal('0.01')}}
+        extra_kwargs = {
+            **{field: {'error_messages': EMPTY_ERRORS} for field in REQUIRED_FIELDS},
+            'amount': {'min_value': Decimal('0.01'), 'error_messages': EMPTY_ERRORS},
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,6 +62,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
             household_subcategories(household_id=household_id).filter(is_active=True),
             getattr(current, 'subcategory_id', None),
         )
+
+    def to_internal_value(self, data):
+        # Un câmp lăsat gol în formular vine ca ''. Îl tratăm ca valoare lipsă (None),
+        # ca să primească mesajul „nu poate fi gol”, nu „format greșit” / „număr invalid”.
+        if isinstance(data, Mapping):
+            data = {**data, **{f: None for f in REQUIRED_FIELDS if data.get(f) == ''}}
+        return super().to_internal_value(data)
 
     def validate(self, attrs):
         # La editare parțială (PATCH) câmpurile netrimise își păstrează valoarea curentă.
