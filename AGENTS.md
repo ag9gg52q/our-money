@@ -28,7 +28,7 @@ our-money/
 │   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
 │   │   │                     #   api/v1/households/ → households.urls, api/v1/categories/ → categories.urls,
 │   │   │                     #   api/v1/ → subcategories.urls, api/v1/income-sources/ → income_sources.urls,
-│   │   │                     #   api/v1/expenses/ → expenses.urls
+│   │   │                     #   api/v1/expenses/ → expenses.urls, api/v1/incomes/ → incomes.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
 │   ├── core/                 # App comun: endpoint-ul de health
@@ -66,6 +66,14 @@ our-money/
 │   │   ├── serializers.py    # validarea cheltuielii (izolare pe gospodărie) + a filtrelor listei
 │   │   ├── views.py          # listă cu filtre și total + adăugare (GET, POST), editare + ștergere (PATCH, DELETE)
 │   │   ├── urls.py           # rutele /api/v1/expenses/
+│   │   └── tests/            # teste pytest: model, API
+│   ├── incomes/              # Veniturile gospodăriei
+│   │   ├── models.py         # Income: dată, persoană, sursă de venit, sumă (Decimal > 0), notă
+│   │   ├── selectors.py      # household_incomes() cu filtre opționale (perioadă, persoană), incomes_total()
+│   │   ├── services.py       # create_income(), update_income(), delete_income()
+│   │   ├── serializers.py    # validarea venitului (izolare pe gospodărie) + a filtrelor listei
+│   │   ├── views.py          # listă cu filtre și total + adăugare (GET, POST), editare + ștergere (PATCH, DELETE)
+│   │   ├── urls.py           # rutele /api/v1/incomes/
 │   │   └── tests/            # teste pytest: model, API
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
@@ -134,6 +142,7 @@ our-money/
 | `ourmoney/subcategories/views.py` | API-ul subcategoriilor `/api/v1/categories/<id>/subcategories/` (listă, adăugare), `/api/v1/subcategories/<id>/` (editare) |
 | `ourmoney/income_sources/views.py` | API-ul surselor de venit `/api/v1/income-sources/` (listă, adăugare, editare) |
 | `ourmoney/expenses/views.py` | API-ul cheltuielilor `/api/v1/expenses/` (listă cu filtre și total, adăugare, editare, ștergere) |
+| `ourmoney/incomes/views.py` | API-ul veniturilor `/api/v1/incomes/` (listă cu filtre și total, adăugare, editare, ștergere) |
 | `ourmoney/households/permissions.py` | Permisiunile pe gospodărie, folosite de API-urile datelor gospodăriei |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |

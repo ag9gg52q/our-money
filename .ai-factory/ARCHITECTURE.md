@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-18 — cheltuiala are câmpul obligatoriu `store` (magazinul); tabelul de
-> cheltuieli arată avatarul persoanei, magazinul și nota la cerere, cu lățimi fixe.
+> Ultima actualizare: 2026-11-18 — app-ul `incomes` (veniturile gospodăriei): model, API de listare
+> cu filtre și total, adăugare, editare, ștergere; ecranul de venituri nu există încă.
 
 ## Prezentare generală
 
@@ -16,7 +16,8 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `Household`, crearea și alăturarea la o gospodărie, gospodăria curentă cu membrii ei, redenumirea,
   promovarea unui membru la admin, permisiunile pe gospodărie), `categories`
   (categoriile de cheltuieli ale gospodăriei), `subcategories` (subcategoriile fiecărei categorii) și
-  `income_sources` (sursele de venit ale gospodăriei) și `expenses` (cheltuielile gospodăriei).
+  `income_sources` (sursele de venit ale gospodăriei), `expenses` (cheltuielile gospodăriei) și
+  `incomes` (veniturile gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
@@ -52,7 +53,8 @@ our-money/
 │   │   │                          #   api/v1/categories/ → categories.urls,
 │   │   │                          #   api/v1/ → subcategories.urls,
 │   │   │                          #   api/v1/income-sources/ → income_sources.urls,
-│   │   │                          #   api/v1/expenses/ → expenses.urls
+│   │   │                          #   api/v1/expenses/ → expenses.urls,
+│   │   │                          #   api/v1/incomes/ → incomes.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
 │   ├── core/                      # App comun (cross-cutting)
@@ -121,6 +123,24 @@ our-money/
 │   │   ├── views.py               # ExpenseListView (GET, POST), ExpenseDetailView (PATCH, DELETE) — orice membru
 │   │   ├── urls.py                # '' (expense-list), '<uuid:pk>/' (expense-detail)
 │   │   ├── migrations/            # 0001_initial, 0002 (category / subcategory: PROTECT → RESTRICT)
+│   │   └── tests/
+│   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
+│   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
+│   ├── incomes/                   # Veniturile gospodăriei
+│   │   ├── models.py              # Income: id UUID, household (FK, CASCADE), date, person (FK user, PROTECT),
+│   │   │                          #   income_source (FK, RESTRICT — nu se poate șterge cât are venituri),
+│   │   │                          #   amount (Decimal 12,2, CheckConstraint > 0), note (max 255, opțională),
+│   │   │                          #   created_at, updated_at; ordonare -date, -created_at; index (household, date)
+│   │   ├── selectors.py           # household_incomes(): veniturile gospodăriei cu filtre opționale (date_from,
+│   │   │                          #   date_to, person) + select_related; incomes_total() (Sum)
+│   │   ├── services.py            # create_income(), update_income() (salvează și updated_at), delete_income()
+│   │   ├── serializers.py         # IncomeSerializer: id-uri + person_name / income_source_name; persoană și sursă
+│   │   │                          #   doar din gospodărie și active (la editare se poate păstra valoarea curentă);
+│   │   │                          #   câmpurile obligatorii goale → „Acest câmp nu poate fi gol.”;
+│   │   │                          #   IncomeFilterSerializer: date_from, date_to, person; date_from <= date_to
+│   │   ├── views.py               # IncomeListView (GET, POST), IncomeDetailView (PATCH, DELETE) — orice membru
+│   │   ├── urls.py                # '' (income-list), '<uuid:pk>/' (income-detail)
+│   │   ├── migrations/            # 0001_initial
 │   │   └── tests/
 │   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
 │   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
@@ -296,6 +316,7 @@ our-money/
 | `subcategories` | Subcategoriile categoriilor | `Subcategory` unic per categorie; API de listare și adăugare pe categorie, editare |
 | `income_sources` | Sursele de venit | `IncomeSource` unic per gospodărie; API de listare, adăugare, editare |
 | `expenses` | Cheltuielile | `Expense` al gospodăriei; API de listare cu filtre și total, adăugare, editare, ștergere — pentru orice membru |
+| `incomes` | Veniturile | `Income` al gospodăriei; API de listare cu filtre (perioadă, persoană) și total, adăugare, editare, ștergere — pentru orice membru |
 
 **Gospodării:** un user face parte din cel mult o gospodărie (`User.household`, `ForeignKey`).
 La ștergerea unei gospodării, membrii rămân fără gospodărie (`on_delete=SET_NULL`) și își pierd
@@ -330,6 +351,10 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?}`; `201` cheltuiala; `400` sumă ≤ 0, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
 | PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `404` cheltuiala altei gospodării |
 | DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204`; `404` cheltuiala altei gospodării |
+| GET | `/api/v1/incomes/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `person`; `200 {incomes: [{id, date, amount, note, person, person_name, income_source, income_source_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
+| POST | `/api/v1/incomes/` | membru, cu CSRF | corp `{date, person, income_source, amount, note?}`; `201` venitul; `400` sumă ≤ 0, persoană / sursă din altă gospodărie sau sursă dezactivată |
+| PATCH | `/api/v1/incomes/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` venitul; sursa / persoana curentă se pot păstra chiar dacă sursa e dezactivată sau persoana a plecat; `404` venitul altei gospodării |
+| DELETE | `/api/v1/incomes/<id>/` | membru, cu CSRF | `204`; `404` venitul altei gospodării |
 
 Userul este întors ca `{id, username, email, first_name, last_name, role, household}`; `role` este
 `"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol). `household` este `null` sau
@@ -360,7 +385,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 265 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`)
+  `user` (cont fără rol, parola `PASSWORD`). 338 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
