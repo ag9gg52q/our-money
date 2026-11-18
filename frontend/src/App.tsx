@@ -8,6 +8,7 @@ import RequireNoRole from './auth/RequireNoRole'
 import RequireRole from './auth/RequireRole'
 import Layout from './components/Layout/Layout'
 import ExpensesPage from './pages/ExpensesPage'
+import IncomesPage from './pages/IncomesPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -48,6 +49,7 @@ export default function App() {
                 <Route index element={<HomePage />} />
                 <Route path="status" element={<StatusPage />} />
                 <Route path="expenses" element={<ExpensesPage />} />
+                <Route path="incomes" element={<IncomesPage />} />
                 <Route element={<RequireRole role="admin" />}>
                   <Route path="settings" element={<SettingsPage />}>
                     <Route

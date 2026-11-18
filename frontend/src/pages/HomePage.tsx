@@ -61,6 +61,7 @@ export default function HomePage() {
         </Icon>
       ),
       tone: 'info',
+      to: '/incomes',
     },
   ]
   if (isAdmin) {

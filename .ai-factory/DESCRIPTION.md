@@ -24,8 +24,8 @@ de venit ale gospodăriei, și Gospodărie: adminul redenumește gospodăria, ve
 face administrator un membru (rolul nu se mai retrage); celelalte
 secțiuni sunt „În curând”. Pagina Cheltuieli (pentru orice membru) arată cheltuielile unei luni,
 cu filtre pe categorie și persoană și totalul lor; din ea se adaugă, se editează și se șterg
-cheltuieli (sumele se scriu cu virgulă). Veniturile au deocamdată doar API-ul (listă pe perioadă și
-persoană cu total, adăugare, editare, ștergere); ecranul lor nu există încă.
+cheltuieli (sumele se scriu cu virgulă). Pagina Venituri (pentru orice membru) arată veniturile
+unei luni, cu filtru pe persoană și totalul lor; din ea se adaugă, se editează și se șterg venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
