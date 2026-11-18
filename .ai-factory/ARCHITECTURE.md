@@ -2,9 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-16 — ecranul Cheltuieli (`/expenses`): listă pe lună cu filtre în URL
-> și total, modalurile de adăugare / editare / ștergere; câmpurile obligatorii goale ale cheltuielii
-> primesc mesajul „Acest câmp nu poate fi gol.”.
+> Ultima actualizare: 2026-11-18 — cheltuiala are câmpul obligatoriu `store` (magazinul); tabelul de
+> cheltuieli arată avatarul persoanei, magazinul și nota la cerere, cu lățimi fixe.
 
 ## Prezentare generală
 
@@ -109,7 +108,7 @@ our-money/
 │   │   ├── models.py              # Expense: id UUID, household (FK, CASCADE), date, person (FK user, PROTECT),
 │   │   │                          #   category / subcategory (FK, RESTRICT — nu se pot șterge cât au cheltuieli,
 │   │   │                          #   dar dispar odată cu gospodăria), amount (Decimal 12,2, CheckConstraint > 0),
-│   │   │                          #   note (max 255, opțională), created_at, updated_at; ordonare -date, -created_at;
+│   │   │                          #   store (magazinul, max 100, obligatoriu), note (max 255, opțională), created_at, updated_at; ordonare -date, -created_at;
 │   │   │                          #   index (household, date)
 │   │   ├── selectors.py           # household_expenses(): cheltuielile gospodăriei cu filtre opționale (date_from,
 │   │   │                          #   date_to, category, subcategory, person) + select_related; expenses_total() (Sum)
@@ -199,6 +198,7 @@ our-money/
 │       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
+│       │   ├── Avatar/            # Cerc cu inițiala (sau poza, prin imageUrl), culoare după nume, tooltip cu numele
 │       │   ├── Button/            # Buton primary / secondary / danger (CSS Module)
 │       │   ├── Select/            # Dropdown propriu (combobox + listbox): etichetă, listă stilizată,
 │       │   │                      #   tastatură (săgeți, Home/End, Enter, Esc), închidere la click în afară;
@@ -215,7 +215,7 @@ our-money/
 │       │                             #   categories/CategoryModal.module.css
 │       ├── expenses/
 │       │   ├── ExpenseModal.tsx   # Adăugare / editare: dată (implicit azi), categorie → subcategoriile ei, persoană
-│       │   │                      #   (implicit userul curent), notă, sumă cu virgulă (trimisă cu punct);
+│       │   │                      #   (implicit userul curent), magazin, notă, sumă cu virgulă (trimisă cu punct);
 │       │   │                      #   opțiunile active + valoarea curentă la editare; erori pe câmp → onSaved()
 │       │   ├── DeleteExpenseModal.tsx # Confirmarea ștergerii (sumă, dată, categorie) → deleteExpense() → onDeleted()
 │       │   └── ExpenseModal.module.css # Stiluri comune celor două modale
@@ -229,7 +229,8 @@ our-money/
 │       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială / venit
 │       │   │                      #   „În curând”, Setări sistem pentru admin), bloc gol pentru rapoarte
 │       │   ├── ExpensesPage.tsx   # Cheltuieli: filtrele în URL (?month, ?category, ?person), luna cu săgeți,
-│       │   │                      #   tabel (dată, categorie / subcategorie, notă, persoană, sumă) cu total;
+│       │   │                      #   tabel cu lățimi fixe (avatarul persoanei, dată, categorie / subcategorie,
+│       │   │                      #   magazin, sumă, acțiuni) cu total; nota se deschide sub rând la cerere;
 │       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
 │       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
 │       │   ├── SettingsPage.tsx   # Layout Setări sistem: titlu, tab-uri, <Outlet />
@@ -325,8 +326,8 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | GET | `/api/v1/income-sources/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar sursele de venit ale gospodăriei, după nume; `403` fără gospodărie |
 | POST | `/api/v1/income-sources/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |
 | PATCH | `/api/v1/income-sources/<id>/` | admin, cu CSRF | corp `{name?, is_active?}`; `200` sursa de venit; `404` sursa altei gospodării; nu există `DELETE` (se dezactivează) |
-| GET | `/api/v1/expenses/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `category`, `subcategory`, `person`; `200 {expenses: [{id, date, amount, note, person, person_name, category, category_name, subcategory, subcategory_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
-| POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, note?}`; `201` cheltuiala; `400` sumă ≤ 0, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
+| GET | `/api/v1/expenses/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `category`, `subcategory`, `person`; `200 {expenses: [{id, date, amount, store, note, person, person_name, category, category_name, subcategory, subcategory_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
+| POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?}`; `201` cheltuiala; `400` sumă ≤ 0, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
 | PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `404` cheltuiala altei gospodării |
 | DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204`; `404` cheltuiala altei gospodării |
 
@@ -359,7 +360,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 258 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`)
+  `user` (cont fără rol, parola `PASSWORD`). 265 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -391,7 +392,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 | Folder | Conține | Regulă |
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
-| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Button`, `TextField`, `Select`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
+| `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Avatar`, `Button`, `TextField`, `Select`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
 | `households/`, `categories/`, `subcategories/`, `income_sources/`, `expenses/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit, cheltuielii), folosite din `pages/` | Pot apela funcții din `api/` |
 | `utils/` | Funcții pure de formatare (sume, date) și de lucru cu lunile | Fără React, fără API |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |

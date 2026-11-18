@@ -60,7 +60,7 @@ our-money/
 │   │   ├── urls.py           # rutele /api/v1/income-sources/
 │   │   └── tests/            # teste pytest: model, API
 │   ├── expenses/             # Cheltuielile gospodăriei
-│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), notă
+│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), magazin, notă
 │   │   ├── selectors.py      # household_expenses() cu filtre opționale, expenses_total()
 │   │   ├── services.py       # create_expense(), update_expense(), delete_expense()
 │   │   ├── serializers.py    # validarea cheltuielii (izolare pe gospodărie) + a filtrelor listei
@@ -94,7 +94,7 @@ our-money/
 │       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout; /settings doar admin, cu sub-rute (nomenclatoare, template-uri, rapoarte)
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
 │       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
-│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Select, Modal)
+│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Avatar, Button, TextField, Select, Modal)
 │       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── subcategories/    # Modalul de adăugare / editare a unei subcategorii
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit

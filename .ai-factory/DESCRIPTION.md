@@ -33,7 +33,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
   sistem) și `user` (cheltuieli și venituri).
 - **Gospodării** — un user creează o gospodărie (devine admin) sau se alătură uneia cu un cod de
   invitație (devine user); fiecare user face parte din cel mult o gospodărie.
-- **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre.
+- **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, magazin, notă; listă cu filtre.
 - **Venituri** — înregistrarea și lista veniturilor.
 - **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective.
 - **Categorii, subcategorii, surse de venit și persoane** — nomenclatoarele folosite la înregistrare.

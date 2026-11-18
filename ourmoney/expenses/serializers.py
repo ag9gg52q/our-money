@@ -9,9 +9,9 @@ from subcategories.selectors import household_subcategories
 
 from .models import Expense
 
-REQUIRED_FIELDS = ('date', 'amount', 'person', 'category', 'subcategory')
+REQUIRED_FIELDS = ('date', 'amount', 'store', 'person', 'category', 'subcategory')
 EMPTY_MESSAGE = 'Acest câmp nu poate fi gol.'
-EMPTY_ERRORS = {'required': EMPTY_MESSAGE, 'null': EMPTY_MESSAGE}
+EMPTY_ERRORS = {'required': EMPTY_MESSAGE, 'null': EMPTY_MESSAGE, 'blank': EMPTY_MESSAGE}
 
 
 def with_current(queryset, current_id):
@@ -31,6 +31,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'id',
             'date',
             'amount',
+            'store',
             'note',
             'person',
             'person_name',

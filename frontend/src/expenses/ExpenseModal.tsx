@@ -24,7 +24,15 @@ type ExpenseModalProps = {
   onSaved: () => void
 }
 
-const FIELDS = ['date', 'person', 'category', 'subcategory', 'amount', 'note']
+const FIELDS = [
+  'date',
+  'person',
+  'category',
+  'subcategory',
+  'amount',
+  'store',
+  'note',
+]
 
 // În formular suma se scrie cu virgulă (10,59); API-ul lucrează cu punct (10.59).
 function toDisplayAmount(value: string): string {
@@ -47,6 +55,7 @@ export default function ExpenseModal({
   const [category, setCategory] = useState(expense?.category ?? '')
   const [subcategory, setSubcategory] = useState(expense?.subcategory ?? '')
   const [amount, setAmount] = useState(toDisplayAmount(expense?.amount ?? ''))
+  const [store, setStore] = useState(expense?.store ?? '')
   const [note, setNote] = useState(expense?.note ?? '')
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([])
   const [subcategoryOptions, setSubcategoryOptions] = useState<SelectOption[]>(
@@ -132,6 +141,7 @@ export default function ExpenseModal({
       category,
       subcategory,
       amount: toApiAmount(amount),
+      store: store.trim(),
       note: note.trim(),
     }
 
@@ -153,6 +163,7 @@ export default function ExpenseModal({
   const categoryError = getErrorMessage(error, 'category')
   const subcategoryError = getErrorMessage(error, 'subcategory')
   const amountError = getErrorMessage(error, 'amount')
+  const storeError = getErrorMessage(error, 'store')
   const noteError = getErrorMessage(error, 'note')
 
   const hasFieldError = FIELDS.some((field) => getErrorMessage(error, field))
@@ -208,6 +219,13 @@ export default function ExpenseModal({
           placeholder="Selectează persoana"
           onChange={setPerson}
           error={personError}
+        />
+        <TextField
+          label="Magazin"
+          maxLength={100}
+          value={store}
+          onChange={(event) => setStore(event.target.value)}
+          error={storeError}
         />
         <TextField
           label="Notă (opțional)"

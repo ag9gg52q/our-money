@@ -75,7 +75,9 @@
 
 .table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 14px;
 }
 
@@ -130,11 +132,6 @@
   display: block;
   color: var(--color-muted);
   font-size: 13px;
-}
-
-.note {
-  max-width: 280px;
-  color: var(--color-ink-soft);
 }
 
 .filters {
@@ -222,4 +219,67 @@
 .iconDanger:hover {
   background: var(--color-danger-soft);
   color: var(--color-danger);
+}
+
+.colPerson {
+  width: 56px;
+}
+
+.colDate {
+  width: 140px;
+}
+
+.colAmount {
+  width: 160px;
+}
+
+.colActions {
+  width: 160px;
+}
+
+.category,
+.subcategory,
+.store {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconPlaceholder {
+  display: inline-block;
+  width: 44px;
+}
+
+.iconButton[aria-expanded='true'] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.table tbody tr.rowOpen td {
+  border-bottom: 0;
+}
+
+.table .noteRow td {
+  padding: 0 12px 14px 68px;
+}
+
+.noteText {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--color-ground);
+  color: var(--color-ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.store {
+  color: var(--color-ink-soft);
+}
+
+.storeEmpty {
+  color: var(--color-muted);
 }

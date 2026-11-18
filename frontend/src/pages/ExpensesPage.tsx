@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { fetchCategories } from '../api/categories'
 import { type Expense, type ExpenseList, fetchExpenses } from '../api/expenses'
 import { fetchCurrentHousehold } from '../api/households'
+import Avatar from '../components/Avatar/Avatar'
 import Button from '../components/Button/Button'
 import Select, { type SelectOption } from '../components/Select/Select'
 import DeleteExpenseModal from '../expenses/DeleteExpenseModal'
@@ -31,6 +32,7 @@ export default function ExpensesPage() {
   const [editing, setEditing] = useState<Expense | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [openNoteId, setOpenNoteId] = useState<string | null>(null)
 
   // Filtrele stau în URL (?month=2026-11&category=...&person=...), nu în state.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -99,6 +101,10 @@ export default function ExpensesPage() {
   function handleDeleted() {
     setDeleting(null)
     setReloadKey((key) => key + 1)
+  }
+
+  function toggleNote(id: string) {
+    setOpenNoteId((current) => (current === id ? null : id))
   }
 
   return (
@@ -210,12 +216,22 @@ export default function ExpensesPage() {
         {loadState === 'ready' && data && data.expenses.length > 0 && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
+              <colgroup>
+                <col className={styles.colPerson} />
+                <col className={styles.colDate} />
+                <col />
+                <col />
+                <col className={styles.colAmount} />
+                <col className={styles.colActions} />
+              </colgroup>
               <thead>
                 <tr>
+                  <th scope="col">
+                    <span className={styles.srOnly}>Persoană</span>
+                  </th>
                   <th scope="col">Data</th>
                   <th scope="col">Categorie</th>
-                  <th scope="col">Notă</th>
-                  <th scope="col">Persoană</th>
+                  <th scope="col">Magazin</th>
                   <th scope="col" className={styles.amount}>
                     Sumă
                   </th>
@@ -226,64 +242,119 @@ export default function ExpensesPage() {
               </thead>
               <tbody>
                 {data.expenses.map((expense) => (
-                  <tr key={expense.id}>
-                    <td className={styles.date}>{formatDate(expense.date)}</td>
-                    <td>
-                      <span className={styles.category}>
-                        {expense.category_name}
-                      </span>
-                      <span className={styles.subcategory}>
-                        {expense.subcategory_name}
-                      </span>
-                    </td>
-                    <td className={styles.note}>{expense.note}</td>
-                    <td>{expense.person_name}</td>
-                    <td className={styles.amount}>
-                      {formatAmount(expense.amount)}
-                    </td>
-                    <td className={styles.actionsCell}>
-                      <button
-                        type="button"
-                        className={styles.iconButton}
-                        aria-label={`Editează cheltuiala din ${formatDate(expense.date)}`}
-                        onClick={() => setEditing(expense)}
-                      >
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
+                  <Fragment key={expense.id}>
+                    <tr
+                      className={
+                        openNoteId === expense.id ? styles.rowOpen : undefined
+                      }
+                    >
+                      <td>
+                        <Avatar name={expense.person_name} />
+                      </td>
+                      <td className={styles.date}>
+                        {formatDate(expense.date)}
+                      </td>
+                      <td>
+                        <span className={styles.category}>
+                          {expense.category_name}
+                        </span>
+                        <span className={styles.subcategory}>
+                          {expense.subcategory_name}
+                        </span>
+                      </td>
+                      <td className={styles.store}>
+                        {expense.store || (
+                          <span className={styles.storeEmpty}>—</span>
+                        )}
+                      </td>
+                      <td className={styles.amount}>
+                        {formatAmount(expense.amount)}
+                      </td>
+                      <td className={styles.actionsCell}>
+                        {expense.note ? (
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            aria-label={
+                              openNoteId === expense.id
+                                ? 'Ascunde nota'
+                                : 'Arată nota'
+                            }
+                            aria-expanded={openNoteId === expense.id}
+                            aria-controls={`note-${expense.id}`}
+                            onClick={() => toggleNote(expense.id)}
+                          >
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
+                              <path d="M8 9h8M8 13h5" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <span
+                            className={styles.iconPlaceholder}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          aria-label={`Editează cheltuiala din ${formatDate(expense.date)}`}
+                          onClick={() => setEditing(expense)}
                         >
-                          <path d="M4 20h4L19 9l-4-4L4 16z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.iconButton} ${styles.iconDanger}`}
-                        aria-label={`Șterge cheltuiala din ${formatDate(expense.date)}`}
-                        onClick={() => setDeleting(expense)}
-                      >
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M4 20h4L19 9l-4-4L4 16z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.iconButton} ${styles.iconDanger}`}
+                          aria-label={`Șterge cheltuiala din ${formatDate(expense.date)}`}
+                          onClick={() => setDeleting(expense)}
                         >
-                          <path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                    {openNoteId === expense.id && (
+                      <tr id={`note-${expense.id}`} className={styles.noteRow}>
+                        <td colSpan={6}>
+                          <p className={styles.noteText}>{expense.note}</p>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
               <tfoot>

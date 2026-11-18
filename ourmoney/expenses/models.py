@@ -20,6 +20,7 @@ class Expense(models.Model):
         'subcategories.Subcategory', on_delete=models.RESTRICT, related_name='expenses'
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    store = models.CharField(max_length=100)
     note = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

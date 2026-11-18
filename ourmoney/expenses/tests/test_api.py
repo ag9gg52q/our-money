@@ -66,6 +66,7 @@ def make_expense(person, subcategory, **fields):
         'category': subcategory.category,
         'subcategory': subcategory,
         'amount': Decimal('12.50'),
+        'store': 'Kaufland',
     }
     data.update(fields)
     return Expense.objects.create(**data)
@@ -78,6 +79,7 @@ def payload(person, subcategory, /, **fields):
         'category': str(subcategory.category_id),
         'subcategory': str(subcategory.id),
         'amount': '12.50',
+        'store': 'Kaufland',
         'note': 'Lapte și brânză',
     }
     data.update(fields)
@@ -92,7 +94,7 @@ def notes(response):
 
 
 def test_list_response_format(admin, subcategory):
-    expense = make_expense(admin, subcategory, note='Lapte')
+    expense = make_expense(admin, subcategory, store='Kaufland', note='Lapte')
 
     response = client_for(admin).get(LIST_URL)
 
@@ -103,6 +105,7 @@ def test_list_response_format(admin, subcategory):
                 'id': str(expense.id),
                 'date': '2026-11-05',
                 'amount': '12.50',
+                'store': 'Kaufland',
                 'note': 'Lapte',
                 'person': str(admin.id),
                 'person_name': 'admin',
@@ -224,7 +227,33 @@ def test_create_note_is_optional(admin, subcategory):
     assert Expense.objects.get().note == ''
 
 
-@pytest.mark.parametrize('field', ['date', 'person', 'category', 'subcategory', 'amount'])
+def test_create_saves_store(admin, subcategory):
+    response = client_for(admin).post(LIST_URL, payload(admin, subcategory), format='json')
+
+    assert response.status_code == 201
+    assert response.json()['store'] == 'Kaufland'
+    assert Expense.objects.get().store == 'Kaufland'
+
+
+def test_create_store_with_only_spaces_returns_400(admin, subcategory):
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, store='   '), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'store': ['Acest câmp nu poate fi gol.']}
+
+
+def test_create_store_too_long_returns_400(admin, subcategory):
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, store='x' * 101), format='json'
+    )
+
+    assert response.status_code == 400
+    assert 'store' in response.json()
+
+
+@pytest.mark.parametrize('field', ['date', 'person', 'category', 'subcategory', 'amount', 'store'])
 def test_create_without_required_field_returns_400(admin, subcategory, field):
     data = payload(admin, subcategory)
     del data[field]
@@ -236,7 +265,7 @@ def test_create_without_required_field_returns_400(admin, subcategory, field):
     assert Expense.objects.count() == 0
 
 
-@pytest.mark.parametrize('field', ['date', 'person', 'category', 'subcategory', 'amount'])
+@pytest.mark.parametrize('field', ['date', 'person', 'category', 'subcategory', 'amount', 'store'])
 @pytest.mark.parametrize('value', ['', None])
 def test_create_with_empty_required_field_returns_400(admin, subcategory, field, value):
     data = payload(admin, subcategory, **{field: value})
@@ -488,6 +517,14 @@ def test_member_can_edit_admin_expense(member, expense, csrf_client):
     expense.refresh_from_db()
     assert expense.amount == Decimal('20.00')
     assert expense.note == 'Lapte'
+
+
+def test_edit_store(admin, expense):
+    response = client_for(admin).patch(detail_url(expense.id), {'store': 'Lidl'}, format='json')
+
+    assert response.status_code == 200
+    expense.refresh_from_db()
+    assert expense.store == 'Lidl'
 
 
 def test_edit_updates_updated_at(admin, expense):

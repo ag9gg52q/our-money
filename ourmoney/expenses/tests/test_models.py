@@ -39,6 +39,7 @@ def make_expense(person, category, **fields):
         'category': category,
         'subcategory': category.subcategories.first(),
         'amount': Decimal('12.50'),
+        'store': 'Kaufland',
     }
     data.update(fields)
     return Expense.objects.create(**data)
@@ -49,6 +50,7 @@ def test_expense_is_saved_with_empty_note(person, category, subcategory):
 
     expense.refresh_from_db()
     assert expense.subcategory == subcategory
+    assert expense.store == 'Kaufland'
     assert expense.note == ''
     assert expense.amount == Decimal('12.50')
     assert str(expense) == '2026-11-05 - 12.50'
