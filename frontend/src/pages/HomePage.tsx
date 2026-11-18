@@ -50,6 +50,7 @@ export default function HomePage() {
         </Icon>
       ),
       tone: 'accent',
+      to: '/expenses',
     },
     {
       title: 'Adaugă venit',

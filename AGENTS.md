@@ -27,7 +27,8 @@ our-money/
 │   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
 │   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
 │   │   │                     #   api/v1/households/ → households.urls, api/v1/categories/ → categories.urls,
-│   │   │                     #   api/v1/ → subcategories.urls, api/v1/income-sources/ → income_sources.urls
+│   │   │                     #   api/v1/ → subcategories.urls, api/v1/income-sources/ → income_sources.urls,
+│   │   │                     #   api/v1/expenses/ → expenses.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
 │   ├── core/                 # App comun: endpoint-ul de health
@@ -58,6 +59,14 @@ our-money/
 │   │   ├── views.py          # listă + adăugare (GET, POST), editare (PATCH)
 │   │   ├── urls.py           # rutele /api/v1/income-sources/
 │   │   └── tests/            # teste pytest: model, API
+│   ├── expenses/             # Cheltuielile gospodăriei
+│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), magazin, notă
+│   │   ├── selectors.py      # household_expenses() cu filtre opționale, expenses_total()
+│   │   ├── services.py       # create_expense(), update_expense(), delete_expense()
+│   │   ├── serializers.py    # validarea cheltuielii (izolare pe gospodărie) + a filtrelor listei
+│   │   ├── views.py          # listă cu filtre și total + adăugare (GET, POST), editare + ștergere (PATCH, DELETE)
+│   │   ├── urls.py           # rutele /api/v1/expenses/
+│   │   └── tests/            # teste pytest: model, API
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
 │   │   ├── selectors.py      # household_members() — membrii gospodăriei, ordonați
@@ -85,13 +94,15 @@ our-money/
 │       ├── App.tsx           # Rutele: /login, /signup (nelogați); /start (logați fără rol); restul (cu rol), în Layout; /settings doar admin, cu sub-rute (nomenclatoare, template-uri, rapoarte)
 │       ├── index.css         # Variabilele de design (culori, font) + stiluri globale
 │       ├── auth/             # Contextul de autentificare (user, login, logout, refreshUser) + paznicii (RequireAuth, RequireRole, RequireNoRole, RedirectIfAuthenticated)
-│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Button, TextField, Select, Modal)
+│       ├── components/       # Componente reutilizabile (Layout, AuthLayout, PageLoader, Avatar, Button, TextField, Select, Modal)
 │       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── subcategories/    # Modalul de adăugare / editare a unei subcategorii
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit
+│       ├── expenses/         # Modalurile cheltuielii: adăugare / editare, confirmarea ștergerii
 │       ├── households/       # Modalurile gospodăriei: creare, alăturare, redenumire, promovare la admin
-│       ├── pages/            # O componentă per pagină (Home, Start, Settings, Login, Signup, Status, NotFound);
+│       ├── pages/            # O componentă per pagină (Home, Start, Expenses, Settings, Login, Signup, Status, NotFound);
 │       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit, Gospodărie)
+│       ├── utils/            # Formatarea sumelor și datelor (format.ts), lucrul cu lunile (months.ts)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
@@ -122,6 +133,7 @@ our-money/
 | `ourmoney/categories/views.py` | API-ul categoriilor `/api/v1/categories/` (listă, adăugare, editare) |
 | `ourmoney/subcategories/views.py` | API-ul subcategoriilor `/api/v1/categories/<id>/subcategories/` (listă, adăugare), `/api/v1/subcategories/<id>/` (editare) |
 | `ourmoney/income_sources/views.py` | API-ul surselor de venit `/api/v1/income-sources/` (listă, adăugare, editare) |
+| `ourmoney/expenses/views.py` | API-ul cheltuielilor `/api/v1/expenses/` (listă cu filtre și total, adăugare, editare, ștergere) |
 | `ourmoney/households/permissions.py` | Permisiunile pe gospodărie, folosite de API-urile datelor gospodăriei |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |

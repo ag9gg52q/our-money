@@ -12,6 +12,9 @@ type SelectProps = {
   value: string
   options: SelectOption[]
   onChange: (value: string) => void
+  error?: string
+  placeholder?: string
+  autoFocus?: boolean
 }
 
 export default function Select({
@@ -19,11 +22,15 @@ export default function Select({
   value,
   options,
   onChange,
+  error,
+  placeholder = 'Selectează o opțiune',
+  autoFocus,
 }: SelectProps) {
   const id = useId()
   const buttonId = `${id}-button`
   const listId = `${id}-list`
   const optionId = (index: number) => `${id}-option-${index}`
+  const errorId = `${id}-error`
 
   const rootRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -114,14 +121,23 @@ export default function Select({
           type="button"
           role="combobox"
           className={styles.trigger}
+          data-autofocus={autoFocus || undefined}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
           aria-controls={listId}
           aria-activedescendant={isOpen ? optionId(activeIndex) : undefined}
           onClick={() => (isOpen ? setIsOpen(false) : open())}
           onKeyDown={handleKeyDown}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
         >
-          <span className={styles.value}>{selected?.label ?? 'Alege...'}</span>
+          {selected ? (
+            <span className={styles.value}>{selected.label}</span>
+          ) : (
+            <span className={`${styles.value} ${styles.placeholder}`}>
+              {placeholder}
+            </span>
+          )}
           <svg
             className={styles.chevron}
             width="18"
@@ -184,6 +200,11 @@ export default function Select({
           </ul>
         )}
       </div>
+      {error && (
+        <p id={errorId} className={styles.error}>
+          {error}
+        </p>
+      )}
     </div>
   )
 }

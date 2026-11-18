@@ -36,3 +36,13 @@
 .secondary:hover:not(:disabled) {
   background: var(--color-ground);
 }
+
+.danger {
+  background: var(--color-danger);
+  color: #ffffff;
+  border: 0;
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}

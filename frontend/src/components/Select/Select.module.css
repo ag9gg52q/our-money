@@ -50,6 +50,10 @@
   white-space: nowrap;
 }
 
+.placeholder {
+  color: var(--color-muted);
+}
+
 .chevron {
   flex-shrink: 0;
   color: var(--color-muted);
@@ -116,4 +120,15 @@
   .list {
     animation: none;
   }
+}
+
+.trigger[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 600;
 }

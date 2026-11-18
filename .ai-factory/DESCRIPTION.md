@@ -22,7 +22,9 @@ pe gospodărie), și Subcategorii: adminul alege o categorie activă și îi ada
 dezactivează subcategoriile, și Surse de venit: adminul adaugă, redenumește și dezactivează sursele
 de venit ale gospodăriei, și Gospodărie: adminul redenumește gospodăria, vede codul de invitație și membrii și poate
 face administrator un membru (rolul nu se mai retrage); celelalte
-secțiuni sunt „În curând”. Nu există încă cheltuieli și venituri.
+secțiuni sunt „În curând”. Pagina Cheltuieli (pentru orice membru) arată cheltuielile unei luni,
+cu filtre pe categorie și persoană și totalul lor; din ea se adaugă, se editează și se șterg
+cheltuieli (sumele se scriu cu virgulă). Nu există încă venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
@@ -31,7 +33,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
   sistem) și `user` (cheltuieli și venituri).
 - **Gospodării** — un user creează o gospodărie (devine admin) sau se alătură uneia cu un cod de
   invitație (devine user); fiecare user face parte din cel mult o gospodărie.
-- **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre.
+- **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, magazin, notă; listă cu filtre.
 - **Venituri** — înregistrarea și lista veniturilor.
 - **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective.
 - **Categorii, subcategorii, surse de venit și persoane** — nomenclatoarele folosite la înregistrare.
