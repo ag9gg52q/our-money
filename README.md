@@ -62,6 +62,27 @@ Deschide http://localhost:5173 — apare pagina de autentificare.
 - **Acces la aplicație:** pe pagina de început alege „Creează o gospodărie” (devii administratorul ei)
   sau „Alătură-te unei gospodării” cu codul de invitație din Setări sistem ale administratorului.
 
+## Publicare (Vercel + Neon)
+
+Aplicația publică: https://our--money.vercel.app
+
+**1. Migrările pe baza Neon** (doar când există migrări noi), din rădăcina repo-ului, cu `.venv` activ:
+
+```powershell
+$env:DATABASE_URL = 'postgresql://...adresa-neon...?sslmode=require'
+python ourmoney\manage.py migrate
+Remove-Item Env:DATABASE_URL
+```
+
+**2. Publicarea**, din rădăcina repo-ului (o singură dată înainte: `npm install -g vercel`, `vercel login`, `vercel link`):
+
+```powershell
+vercel deploy --prod
+```
+
+Variabilele de mediu din producție (`SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`,
+`DATABASE_URL`) se gestionează cu `vercel env ls` / `vercel env add`; o schimbare se aplică la următorul deploy.
+
 ## Teste și verificări
 
 Din rădăcina repo-ului, cu `.venv` activ:

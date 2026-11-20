@@ -1,0 +1,15 @@
+# Secrete și medii locale
+.env
+.venv/
+
+# Generate local (Vercel le reface la build)
+**/node_modules/
+frontend/dist/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Unelte de dezvoltare, nu fac parte din aplicație
+.ai-factory/
+.claude/
+.idea/

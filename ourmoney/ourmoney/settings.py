@@ -31,6 +31,18 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
+# Originile de la care se acceptă cereri POST/PATCH/DELETE (protecția CSRF).
+# În producție: adresa site-ului, de ex. https://our-money.vercel.app
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
+# În producție aplicația rulează pe HTTPS, în spatele proxy-ului Vercel.
+# Proxy-ul spune prin acest header că cererea originală a venit pe HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Cookie-urile de sesiune și CSRF se trimit doar pe HTTPS (local, cu DEBUG=True, merg și pe HTTP).
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
 
 # Application definition
 

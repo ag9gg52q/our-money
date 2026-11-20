@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-18 — veniturile: app-ul `incomes` (model, API de listare cu filtre și
-> total, adăugare, editare, ștergere) și pagina Venituri (`/incomes`) în frontend.
+> Ultima actualizare: 2026-11-20 — publicarea: Vercel (Services: frontend Vite + backend Django pe
+> același domeniu, `vercel.json`), baza de date Neon, setările HTTPS / CSRF pentru producție.
 
 ## Prezentare generală
 
@@ -46,9 +46,11 @@ our-money/
 ├── ourmoney/                      # Rădăcina proiectului Django
 │   ├── manage.py                  # CLI Django
 │   ├── conftest.py                # Fixture-uri pytest comune: api_client, csrf_client, user
+│   ├── requirements.txt           # Dependențele aplicației (instalate și de Vercel)
+│   ├── .python-version            # Versiunea Python pe Vercel (3.13)
 │   ├── ourmoney/                  # Pachetul de configurare (composition root)
 │   │   ├── __init__.py
-│   │   ├── settings.py            # Setări citite din .env (django-environ), DRF, PostgreSQL
+│   │   ├── settings.py            # Setări citite din variabile de mediu (django-environ), DRF, PostgreSQL, HTTPS
 │   │   ├── urls.py                # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
 │   │   │                          #   api/v1/households/ → households.urls,
 │   │   │                          #   api/v1/categories/ → categories.urls,
@@ -306,7 +308,9 @@ our-money/
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
 ├── .env.example                   # Variabilele de mediu necesare (fără valori reale)
-├── requirements.txt               # Dependențe directe, versiuni fixate
+├── requirements.txt               # Include ourmoney/requirements.txt + uneltele de dezvoltare (pytest, ruff)
+├── vercel.json                    # Publicarea pe Vercel: serviciile frontend + backend, rutarea /api/, regiunea
+├── .vercelignore                  # Ce nu se urcă pe Vercel (.env, .venv, node_modules, build-uri locale)
 ├── pytest.ini                     # Configurare pytest-django
 ├── pyproject.toml                 # Configurare Ruff (lint + formatare backend)
 ├── .gitattributes                 # Toate fișierele text cu terminații LF (cerut de Prettier)
@@ -378,7 +382,11 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 
 - **Variabile de mediu** (`.env` în rădăcina repo-ului, citit cu `django-environ`; model în `.env.example`):
   `SECRET_KEY` (obligatoriu), `DEBUG` (implicit `False`), `ALLOWED_HOSTS` (listă separată prin virgulă),
-  `DATABASE_URL` (obligatoriu)
+  `DATABASE_URL` (obligatoriu), `CSRF_TRUSTED_ORIGINS` (listă, implicit goală; în producție adresa site-ului).
+  În producție variabilele sunt setate în proiectul Vercel, nu într-un fișier `.env`
+- **HTTPS (producție):** `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` — Django
+  află de la proxy-ul Vercel că cererea a venit pe HTTPS; `SESSION_COOKIE_SECURE` și
+  `CSRF_COOKIE_SECURE` sunt `not DEBUG` (cookie-uri doar pe HTTPS în producție, și pe HTTP local)
 - **Baza de date:** PostgreSQL, configurată prin `DATABASES = {'default': env.db('DATABASE_URL')}`
 - **Utilizator:** `AUTH_USER_MODEL = 'users.User'`. Rolul din aplicație este `role` și se primește
   doar din aplicație (creatorul unei gospodării devine `admin`); `createsuperuser` nu dă rol.
@@ -398,9 +406,30 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
   `user` (cont fără rol, parola `PASSWORD`). 338 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`)
-- **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
-  pytest, pytest-django, ruff
-- Încă neconfigurate: CORS, logging, permisiuni pe roluri
+- **Dependențe:** `ourmoney/requirements.txt` — dependențele aplicației (Django, djangorestframework,
+  psycopg[binary], django-environ), singurele instalate pe Vercel; `requirements.txt` din rădăcină
+  le include (`-r ourmoney/requirements.txt`) și adaugă uneltele de dezvoltare (pytest, pytest-django, ruff)
+- Încă neconfigurate: CORS (nu e nevoie — frontend-ul și API-ul sunt pe același domeniu), logging,
+  permisiuni pe roluri
+
+## Publicare (producție)
+
+- **Găzduire:** Vercel, plan Hobby, proiectul `our-money`, adresa `https://our--money.vercel.app`,
+  regiunea `fra1` (Frankfurt). Publicarea se face din terminal cu `vercel deploy --prod` (Vercel CLI):
+  repo-ul aparține unei organizații GitHub, iar planul Hobby nu permite legarea lui pentru deploy automat.
+  CLI-ul urcă folderul local (cu excepțiile din `.vercelignore`), inclusiv modificările necomise
+- **`vercel.json`** folosește Vercel Services (Beta): serviciul `frontend` (`frontend/`, Vite, build
+  în `dist/`, orice cale necunoscută → `index.html` pentru React Router) și serviciul `backend`
+  (`ourmoney/`, funcție Python cu entrypoint-ul `ourmoney.wsgi:application`). Rutarea: `/api/(.*)` →
+  `backend` (calea ajunge neschimbată la Django), restul → `frontend`. Un singur domeniu, deci
+  cookie-ul de sesiune și CSRF funcționează ca în dezvoltare. `/admin/` nu e expus în producție
+- **Baza de date:** Neon (PostgreSQL), regiunea AWS Europe Central 1 (Frankfurt), conexiune directă
+  (fără pooling) în `DATABASE_URL`, cu `sslmode=require`
+- **Migrările** nu rulează la build: se rulează manual de pe calculatorul local, cu `DATABASE_URL`
+  setat temporar la adresa Neon (`python ourmoney/manage.py migrate`)
+- **Variabile pe Vercel (Production):** `SECRET_KEY` și `DATABASE_URL` (Secret), `DEBUG=False`,
+  `ALLOWED_HOSTS=our--money.vercel.app`, `CSRF_TRUSTED_ORIGINS=https://our--money.vercel.app`.
+  O variabilă schimbată se aplică doar la următorul deploy
 
 ## Frontend
 
