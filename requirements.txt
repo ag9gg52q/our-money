@@ -1,7 +1,7 @@
-Django==6.1.2
-djangorestframework==3.18.3
-psycopg[binary]==3.3.6
-django-environ==0.14.0
+# Dependențele aplicației (aceleași pe care le instalează Vercel)
+-r ourmoney/requirements.txt
+
+# Unelte de dezvoltare (doar local)
 pytest==9.1.1
 pytest-django==4.14.0
 ruff==0.17.1

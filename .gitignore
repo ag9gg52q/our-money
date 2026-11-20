@@ -224,3 +224,8 @@ __marimo__/
 
 # Claude (doar setările personale/locale)
 .claude/settings.local.json
+
+# Vercel (adăugate de `vercel link`): id-ul proiectului și fișierele .env descărcate
+.vercel
+.env*
+!.env.example

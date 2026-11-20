@@ -48,7 +48,8 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - **Framework (backend):** Django 6.1 + Django REST Framework (API REST)
 - **Bază de date:** PostgreSQL 18
 - **ORM:** Django ORM
-- **Configurare:** django-environ (`.env`)
+- **Configurare:** django-environ (`.env` local, variabile de mediu Vercel în producție)
+- **Găzduire:** Vercel (frontend + backend pe același domeniu, prin Vercel Services), baza de date pe Neon (PostgreSQL)
 - **Frontend:** React + TypeScript, Vite, React Router (aplicație separată în `frontend/`, consumă API-ul)
 - **Autentificare:** sesiune Django (cookie `sessionid` + CSRF), model de utilizator propriu cu rol
 - **Calitate cod:** Ruff (backend), ESLint + Prettier (frontend)

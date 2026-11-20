@@ -23,8 +23,10 @@ our-money/
 ├── ourmoney/                 # Proiectul Django (conține manage.py)
 │   ├── manage.py             # CLI Django: runserver, migrate, makemigrations, startapp
 │   ├── conftest.py           # Fixture-uri pytest comune (api_client, csrf_client, user)
+│   ├── requirements.txt      # Dependențele aplicației (instalate și de Vercel)
+│   ├── .python-version       # Versiunea Python pe Vercel (3.13)
 │   ├── ourmoney/             # Pachetul de configurare al proiectului
-│   │   ├── settings.py       # Setări din .env (django-environ), DRF, PostgreSQL
+│   │   ├── settings.py       # Setări din variabile de mediu (django-environ), DRF, PostgreSQL, HTTPS
 │   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
 │   │   │                     #   api/v1/households/ → households.urls, api/v1/categories/ → categories.urls,
 │   │   │                     #   api/v1/ → subcategories.urls, api/v1/income-sources/ → income_sources.urls,
@@ -116,7 +118,9 @@ our-money/
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
 ├── .env.example              # Variabilele de mediu necesare (copiază în .env)
-├── requirements.txt          # Dependențe Python, versiuni fixate
+├── requirements.txt          # Include ourmoney/requirements.txt + unelte de dezvoltare (pytest, ruff)
+├── vercel.json               # Publicarea pe Vercel: serviciile frontend + backend, rutarea /api/
+├── .vercelignore             # Ce nu se urcă pe Vercel la `vercel deploy`
 ├── pytest.ini                # Configurare pytest-django
 ├── pyproject.toml            # Configurare Ruff
 ├── .gitattributes            # Terminații de linie LF pentru toate fișierele text
@@ -147,7 +151,8 @@ our-money/
 | `ourmoney/households/permissions.py` | Permisiunile pe gospodărie, folosite de API-urile datelor gospodăriei |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
-| `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL` |
+| `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL`, `CSRF_TRUSTED_ORIGINS` |
+| `vercel.json` | Configurarea publicării pe Vercel (Services: `frontend/` + `ourmoney/`, `/api/` → Django) |
 | `pytest.ini` | Configurarea testelor |
 | `frontend/src/main.tsx` | Punctul de intrare al aplicației React |
 | `frontend/src/App.tsx` | Rutele frontend-ului |
