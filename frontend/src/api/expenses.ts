@@ -2,8 +2,8 @@ import { apiFetch } from './client'
 
 export type Expense = {
   id: string
-  date: string // '2026-11-05'
-  amount: string // '12.50'
+  date: string
+  amount: string
   store: string
   note: string
   person: string

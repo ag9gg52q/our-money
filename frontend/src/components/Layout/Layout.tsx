@@ -26,6 +26,7 @@ export default function Layout() {
             Acasă
           </NavLink>
           <NavLink to="/expenses">Cheltuieli</NavLink>
+          <NavLink to="/incomes">Venituri</NavLink>
           {user?.role === 'admin' && (
             <NavLink to="/settings">Setări sistem</NavLink>
           )}

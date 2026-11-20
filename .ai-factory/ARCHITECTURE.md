@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-18 — cheltuiala are câmpul obligatoriu `store` (magazinul); tabelul de
-> cheltuieli arată avatarul persoanei, magazinul și nota la cerere, cu lățimi fixe.
+> Ultima actualizare: 2026-11-18 — veniturile: app-ul `incomes` (model, API de listare cu filtre și
+> total, adăugare, editare, ștergere) și pagina Venituri (`/incomes`) în frontend.
 
 ## Prezentare generală
 
@@ -16,14 +16,16 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `Household`, crearea și alăturarea la o gospodărie, gospodăria curentă cu membrii ei, redenumirea,
   promovarea unui membru la admin, permisiunile pe gospodărie), `categories`
   (categoriile de cheltuieli ale gospodăriei), `subcategories` (subcategoriile fiecărei categorii) și
-  `income_sources` (sursele de venit ale gospodăriei) și `expenses` (cheltuielile gospodăriei).
+  `income_sources` (sursele de venit ale gospodăriei), `expenses` (cheltuielile gospodăriei) și
+  `incomes` (veniturile gospodăriei).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
   plus paginile Acasă (salut, acțiuni rapide, loc pentru rapoarte), Setări sistem (doar admin:
   tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează Categorii,
   Subcategorii, Surse de venit și Gospodărie — codul de invitație și membrii), Cheltuieli (pentru
-  orice membru: listă pe lună cu filtre și total, adăugare, editare, ștergere), Status și 404.
+  orice membru: listă pe lună cu filtre și total, adăugare, editare, ștergere), Venituri (pentru
+  orice membru: listă pe lună cu filtru pe persoană și total, adăugare, editare, ștergere), Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -52,7 +54,8 @@ our-money/
 │   │   │                          #   api/v1/categories/ → categories.urls,
 │   │   │                          #   api/v1/ → subcategories.urls,
 │   │   │                          #   api/v1/income-sources/ → income_sources.urls,
-│   │   │                          #   api/v1/expenses/ → expenses.urls
+│   │   │                          #   api/v1/expenses/ → expenses.urls,
+│   │   │                          #   api/v1/incomes/ → incomes.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
 │   ├── core/                      # App comun (cross-cutting)
@@ -124,6 +127,24 @@ our-money/
 │   │   └── tests/
 │   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
 │   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
+│   ├── incomes/                   # Veniturile gospodăriei
+│   │   ├── models.py              # Income: id UUID, household (FK, CASCADE), date, person (FK user, PROTECT),
+│   │   │                          #   income_source (FK, RESTRICT — nu se poate șterge cât are venituri),
+│   │   │                          #   amount (Decimal 12,2, CheckConstraint > 0), note (max 255, opțională),
+│   │   │                          #   created_at, updated_at; ordonare -date, -created_at; index (household, date)
+│   │   ├── selectors.py           # household_incomes(): veniturile gospodăriei cu filtre opționale (date_from,
+│   │   │                          #   date_to, person) + select_related; incomes_total() (Sum)
+│   │   ├── services.py            # create_income(), update_income() (salvează și updated_at), delete_income()
+│   │   ├── serializers.py         # IncomeSerializer: id-uri + person_name / income_source_name; persoană și sursă
+│   │   │                          #   doar din gospodărie și active (la editare se poate păstra valoarea curentă);
+│   │   │                          #   câmpurile obligatorii goale → „Acest câmp nu poate fi gol.”;
+│   │   │                          #   IncomeFilterSerializer: date_from, date_to, person; date_from <= date_to
+│   │   ├── views.py               # IncomeListView (GET, POST), IncomeDetailView (PATCH, DELETE) — orice membru
+│   │   ├── urls.py                # '' (income-list), '<uuid:pk>/' (income-detail)
+│   │   ├── migrations/            # 0001_initial
+│   │   └── tests/
+│   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
+│   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
 │   ├── households/                # Gospodării
 │   │   ├── models.py              # Household: id UUID, name, invite_code unic (XXXX-XXXX), created_at;
 │   │   │                          #   generate_invite_code() cu `secrets`, fără 0/O/1/I/L
@@ -179,7 +200,7 @@ our-money/
 │       ├── main.tsx               # Punctul de intrare: fontul Manrope, index.css, <App /> în StrictMode
 │       ├── App.tsx                # AuthProvider + rutele: RedirectIfAuthenticated → /login, /signup;
 │       │                          #   RequireAuth → RequireNoRole → /start;
-│       │                          #   RequireAuth → RequireRole → Layout → /, /status, /expenses, *;
+│       │                          #   RequireAuth → RequireRole → Layout → /, /status, /expenses, /incomes, *;
 │       │                          #   în Layout, RequireRole role="admin" → /settings, cu copiii
 │       │                          #   nomenclatoare/<NOMENCLATORS>, template-uri, rapoarte (index → redirect)
 │       ├── index.css              # Variabilele de design (culori, inclusiv info/warm, rază, font) + stiluri globale
@@ -192,7 +213,7 @@ our-money/
 │       │   ├── RequireRole.tsx    # Paznic: logat fără rol → /start; cu `role`, alt rol → /
 │       │   └── RequireNoRole.tsx  # Paznic: logat cu rol → /
 │       ├── components/
-│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu Acasă, Cheltuieli + Setări sistem pentru admin,
+│       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu Acasă, Cheltuieli, Venituri + Setări sistem pentru admin,
 │       │   │                      #   rol, nume, Ieșire) + <Outlet />
 │       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose;
 │       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există
@@ -219,6 +240,12 @@ our-money/
 │       │   │                      #   opțiunile active + valoarea curentă la editare; erori pe câmp → onSaved()
 │       │   ├── DeleteExpenseModal.tsx # Confirmarea ștergerii (sumă, dată, categorie) → deleteExpense() → onDeleted()
 │       │   └── ExpenseModal.module.css # Stiluri comune celor două modale
+│       ├── incomes/
+│       │   ├── IncomeModal.tsx    # Adăugare / editare: dată (implicit azi), sursă de venit, persoană (implicit
+│       │   │                      #   userul curent), notă, sumă cu virgulă (trimisă cu punct); opțiunile active
+│       │   │                      #   + valoarea curentă la editare; erori pe câmp → onSaved()
+│       │   ├── DeleteIncomeModal.tsx # Confirmarea ștergerii (sumă, dată, sursă) → deleteIncome() → onDeleted()
+│       │   └── IncomeModal.module.css # Stiluri comune celor două modale
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
@@ -226,12 +253,15 @@ our-money/
 │       │   ├── MakeAdminModal.tsx       # Confirmarea promovării unui membru → makeAdmin() → onSaved(membrul)
 │       │   └── HouseholdForm.module.css # Stiluri comune formularelor și modalurilor de gospodărie
 │       ├── pages/
-│       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială / venit
-│       │   │                      #   „În curând”, Setări sistem pentru admin), bloc gol pentru rapoarte
+│       │   ├── HomePage.tsx       # Acasă: data, „Bună ziua, {username}”, acțiuni rapide (cheltuială → /expenses,
+│       │   │                      #   venit → /incomes, Setări sistem pentru admin), bloc gol pentru rapoarte
 │       │   ├── ExpensesPage.tsx   # Cheltuieli: filtrele în URL (?month, ?category, ?person), luna cu săgeți,
 │       │   │                      #   tabel cu lățimi fixe (avatarul persoanei, dată, categorie / subcategorie,
 │       │   │                      #   magazin, sumă, acțiuni) cu total; nota se deschide sub rând la cerere;
 │       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
+│       │   ├── IncomesPage.tsx    # Venituri: filtrele în URL (?month, ?person), luna cu săgeți, tabel (avatarul
+│       │   │                      #   persoanei, dată, sursă, sumă, acțiuni) cu total; nota se deschide sub rând;
+│       │   │                      #   IncomeModal / DeleteIncomeModal, apoi lista se reîncarcă (reloadKey)
 │       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
 │       │   ├── SettingsPage.tsx   # Layout Setări sistem: titlu, tab-uri, <Outlet />
 │       │   ├── settings/
@@ -270,6 +300,8 @@ our-money/
 │           ├── income_sources.ts  # fetchIncomeSources(), createIncomeSource(), updateIncomeSource() + tipul IncomeSource
 │           ├── expenses.ts        # fetchExpenses(filtre), createExpense(), updateExpense(), deleteExpense() + tipurile
 │           │                      #   Expense, ExpenseList, ExpenseFilters, ExpenseInput
+│           ├── incomes.ts         # fetchIncomes(filtre), createIncome(), updateIncome(), deleteIncome() + tipurile
+│           │                      #   Income, IncomeList, IncomeFilters, IncomeInput
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
@@ -296,6 +328,7 @@ our-money/
 | `subcategories` | Subcategoriile categoriilor | `Subcategory` unic per categorie; API de listare și adăugare pe categorie, editare |
 | `income_sources` | Sursele de venit | `IncomeSource` unic per gospodărie; API de listare, adăugare, editare |
 | `expenses` | Cheltuielile | `Expense` al gospodăriei; API de listare cu filtre și total, adăugare, editare, ștergere — pentru orice membru |
+| `incomes` | Veniturile | `Income` al gospodăriei; API de listare cu filtre (perioadă, persoană) și total, adăugare, editare, ștergere — pentru orice membru |
 
 **Gospodării:** un user face parte din cel mult o gospodărie (`User.household`, `ForeignKey`).
 La ștergerea unei gospodării, membrii rămân fără gospodărie (`on_delete=SET_NULL`) și își pierd
@@ -330,6 +363,10 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?}`; `201` cheltuiala; `400` sumă ≤ 0, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
 | PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `404` cheltuiala altei gospodării |
 | DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204`; `404` cheltuiala altei gospodării |
+| GET | `/api/v1/incomes/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `person`; `200 {incomes: [{id, date, amount, note, person, person_name, income_source, income_source_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
+| POST | `/api/v1/incomes/` | membru, cu CSRF | corp `{date, person, income_source, amount, note?}`; `201` venitul; `400` sumă ≤ 0, persoană / sursă din altă gospodărie sau sursă dezactivată |
+| PATCH | `/api/v1/incomes/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` venitul; sursa / persoana curentă se pot păstra chiar dacă sursa e dezactivată sau persoana a plecat; `404` venitul altei gospodării |
+| DELETE | `/api/v1/incomes/<id>/` | membru, cu CSRF | `204`; `404` venitul altei gospodării |
 
 Userul este întors ca `{id, username, email, first_name, last_name, role, household}`; `role` este
 `"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol). `household` este `null` sau
@@ -360,7 +397,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 265 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`)
+  `user` (cont fără rol, parola `PASSWORD`). 338 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`)
 - **Dependențe** (`requirements.txt`): Django, djangorestframework, psycopg[binary], django-environ,
   pytest, pytest-django, ruff
 - Încă neconfigurate: CORS, logging, permisiuni pe roluri
@@ -393,7 +430,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Avatar`, `Button`, `TextField`, `Select`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/`, `categories/`, `subcategories/`, `income_sources/`, `expenses/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit, cheltuielii), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/`, `categories/`, `subcategories/`, `income_sources/`, `expenses/`, `incomes/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit, cheltuielii, venitului), folosite din `pages/` | Pot apela funcții din `api/` |
 | `utils/` | Funcții pure de formatare (sume, date) și de lucru cu lunile | Fără React, fără API |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |

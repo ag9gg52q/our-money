@@ -17,7 +17,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Surse de venit** — nomenclatorul surselor de venit
 - [x] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
 - [x] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
-- [ ] **Venituri** — înregistrarea și lista veniturilor
+- [x] **Venituri** — înregistrarea și lista veniturilor
 - [ ] **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective de economisire
 - [ ] **Dashboard și rapoarte** — sumar lunar, pe categorii și persoane, venituri vs cheltuieli, grafice
 - [ ] **Bugete** — buget lunar pe categorie, semnalarea depășirii
@@ -40,3 +40,5 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Subcategorii | 2026-10-30 |
 | Surse de venit | 2026-11-02 |
 | Gospodărie | 2026-11-03 |
+| Cheltuieli | 2026-11-18 |
+| Venituri | 2026-11-18 |
