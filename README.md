@@ -66,17 +66,20 @@ Deschide http://localhost:5173 — apare pagina de autentificare.
 
 Aplicația publică: https://our--money.vercel.app
 
-**1. Migrările pe baza Neon** (doar când există migrări noi), din rădăcina repo-ului, cu `.venv` activ:
+Publicarea e automată: la fiecare push pe `main` (inclusiv merge-ul unui PR), workflow-ul
+`.github/workflows/deploy.yml` rulează migrările pe Neon și publică pe Vercel. Se poate porni și
+manual: GitHub → **Actions** → **Deploy** → **Run workflow**.
+
+Secretele necesare în repo (GitHub → Settings → Secrets and variables → Actions): `VERCEL_TOKEN`,
+`VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (din `.vercel/project.json`, creat de `vercel link`) și `DATABASE_URL` (Neon).
+
+**Manual, de pe calculator** (doar în situații speciale; o singură dată înainte: `npm install -g vercel`,
+`vercel login`, `vercel link`), din rădăcina repo-ului, cu `.venv` activ:
 
 ```powershell
 $env:DATABASE_URL = 'postgresql://...adresa-neon...?sslmode=require'
 python ourmoney\manage.py migrate
 Remove-Item Env:DATABASE_URL
-```
-
-**2. Publicarea**, din rădăcina repo-ului (o singură dată înainte: `npm install -g vercel`, `vercel login`, `vercel link`):
-
-```powershell
 vercel deploy --prod
 ```
 

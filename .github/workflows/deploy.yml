@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # pornire manuală din tab-ul Actions
+
+# Un singur deploy odată; următorul așteaptă să se termine cel curent
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      # Spun CLI-ului Vercel care e proiectul (în locul folderului .vercel/ de pe calculatorul local)
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Instalează dependențele aplicației
+        run: pip install -r ourmoney/requirements.txt
+
+      - name: Rulează migrările pe Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: doar-pentru-migrari # Django o cere ca să pornească; nu e cheia din producție
+        run: python ourmoney/manage.py migrate --noinput
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Publică pe Vercel
+        run: npx vercel@66.5.0 deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
