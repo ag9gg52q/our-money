@@ -50,6 +50,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - **ORM:** Django ORM
 - **Configurare:** django-environ (`.env` local, variabile de mediu Vercel în producție)
 - **Găzduire:** Vercel (frontend + backend pe același domeniu, prin Vercel Services), baza de date pe Neon (PostgreSQL)
+- **Publicare:** GitHub Actions — la fiecare push pe `main`, migrări pe Neon și deploy cu Vercel CLI
 - **Frontend:** React + TypeScript, Vite, React Router (aplicație separată în `frontend/`, consumă API-ul)
 - **Autentificare:** sesiune Django (cookie `sessionid` + CSRF), model de utilizator propriu cu rol
 - **Calitate cod:** Ruff (backend), ESLint + Prettier (frontend)

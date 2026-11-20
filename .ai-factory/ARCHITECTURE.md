@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-20 — publicarea: Vercel (Services: frontend Vite + backend Django pe
-> același domeniu, `vercel.json`), baza de date Neon, setările HTTPS / CSRF pentru producție.
+> Ultima actualizare: 2026-11-20 — publicarea automată: workflow-ul GitHub Actions
+> `.github/workflows/deploy.yml` (migrări pe Neon + `vercel deploy --prod` la fiecare push pe `main`).
 
 ## Prezentare generală
 
@@ -305,6 +305,7 @@ our-money/
 │           ├── incomes.ts         # fetchIncomes(filtre), createIncome(), updateIncome(), deleteIncome() + tipurile
 │           │                      #   Income, IncomeList, IncomeFilters, IncomeInput
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
+├── .github/workflows/deploy.yml   # GitHub Actions: la push pe main → migrări pe Neon + publicare pe Vercel
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                       # Skill-uri și agenți Claude Code
 ├── .env.example                   # Variabilele de mediu necesare (fără valori reale)
@@ -415,9 +416,17 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 ## Publicare (producție)
 
 - **Găzduire:** Vercel, plan Hobby, proiectul `our-money`, adresa `https://our--money.vercel.app`,
-  regiunea `fra1` (Frankfurt). Publicarea se face din terminal cu `vercel deploy --prod` (Vercel CLI):
-  repo-ul aparține unei organizații GitHub, iar planul Hobby nu permite legarea lui pentru deploy automat.
-  CLI-ul urcă folderul local (cu excepțiile din `.vercelignore`), inclusiv modificările necomise
+  regiunea `fra1` (Frankfurt). Repo-ul aparține unei organizații GitHub, iar planul Hobby nu permite
+  integrarea Git a Vercel, așa că publicarea se face prin Vercel CLI (`vercel deploy --prod`), care
+  urcă folderul (cu excepțiile din `.vercelignore`) și face build-ul pe Vercel
+- **Publicare automată:** `.github/workflows/deploy.yml` rulează la fiecare push pe `main` (deci și
+  la merge-ul unui PR) și manual din tab-ul Actions: instalează `ourmoney/requirements.txt`, rulează
+  `migrate --noinput` pe Neon, apoi `npx vercel@66.5.0 deploy --prod`. Dacă migrarea eșuează, deploy-ul
+  nu pornește. Un singur deploy rulează odată (`concurrency`). Secretele repo-ului GitHub:
+  `VERCEL_TOKEN` (token de cont Vercel), `VERCEL_ORG_ID` și `VERCEL_PROJECT_ID` (din
+  `.vercel/project.json`), `DATABASE_URL` (Neon). `SECRET_KEY` din workflow e doar o valoare de
+  umplutură pentru pornirea Django la migrări. `vercel deploy --prod` de pe calculatorul local rămâne
+  posibil, dar urcă și modificările necomise
 - **`vercel.json`** folosește Vercel Services (Beta): serviciul `frontend` (`frontend/`, Vite, build
   în `dist/`, orice cale necunoscută → `index.html` pentru React Router) și serviciul `backend`
   (`ourmoney/`, funcție Python cu entrypoint-ul `ourmoney.wsgi:application`). Rutarea: `/api/(.*)` →
@@ -425,8 +434,8 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
   cookie-ul de sesiune și CSRF funcționează ca în dezvoltare. `/admin/` nu e expus în producție
 - **Baza de date:** Neon (PostgreSQL), regiunea AWS Europe Central 1 (Frankfurt), conexiune directă
   (fără pooling) în `DATABASE_URL`, cu `sslmode=require`
-- **Migrările** nu rulează la build: se rulează manual de pe calculatorul local, cu `DATABASE_URL`
-  setat temporar la adresa Neon (`python ourmoney/manage.py migrate`)
+- **Migrările** nu rulează la build-ul Vercel, ci în workflow-ul GitHub, înaintea deploy-ului. Manual
+  se pot rula de pe calculatorul local, cu `DATABASE_URL` setat temporar la adresa Neon
 - **Variabile pe Vercel (Production):** `SECRET_KEY` și `DATABASE_URL` (Secret), `DEBUG=False`,
   `ALLOWED_HOSTS=our--money.vercel.app`, `CSRF_TRUSTED_ORIGINS=https://our--money.vercel.app`.
   O variabilă schimbată se aplică doar la următorul deploy

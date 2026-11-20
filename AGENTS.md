@@ -115,6 +115,8 @@ our-money/
 │       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit, Gospodărie)
 │       ├── utils/            # Formatarea sumelor și datelor (format.ts), lucrul cu lunile (months.ts)
 │       └── api/              # client.ts (apiFetch + CSRF) și funcțiile per endpoint
+├── .github/workflows/
+│   └── deploy.yml            # La push pe main: migrări pe Neon + `vercel deploy --prod`
 ├── .ai-factory/              # Context AI Factory (descriere, arhitectură, reguli, roadmap)
 ├── .claude/                  # Skill-uri și agenți Claude Code
 ├── .env.example              # Variabilele de mediu necesare (copiază în .env)
@@ -153,6 +155,7 @@ our-money/
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |
 | `.env.example` | Lista variabilelor de mediu: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DATABASE_URL`, `CSRF_TRUSTED_ORIGINS` |
 | `vercel.json` | Configurarea publicării pe Vercel (Services: `frontend/` + `ourmoney/`, `/api/` → Django) |
+| `.github/workflows/deploy.yml` | Publicarea automată la push pe `main` (migrări pe Neon, apoi Vercel CLI) |
 | `pytest.ini` | Configurarea testelor |
 | `frontend/src/main.tsx` | Punctul de intrare al aplicației React |
 | `frontend/src/App.tsx` | Rutele frontend-ului |
