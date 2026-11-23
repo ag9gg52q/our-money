@@ -2,8 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-20 — publicarea automată: workflow-ul GitHub Actions
-> `.github/workflows/deploy.yml` (migrări pe Neon + `vercel deploy --prod` la fiecare push pe `main`).
+> Ultima actualizare: 2026-11-23 — app-ul `savings` (economiile gospodăriei: API doar pentru admin,
+> suma cu semn, sold care nu poate deveni negativ) și permisiunea `IsHouseholdAdmin`.
 
 ## Prezentare generală
 
@@ -16,8 +16,8 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   `Household`, crearea și alăturarea la o gospodărie, gospodăria curentă cu membrii ei, redenumirea,
   promovarea unui membru la admin, permisiunile pe gospodărie), `categories`
   (categoriile de cheltuieli ale gospodăriei), `subcategories` (subcategoriile fiecărei categorii) și
-  `income_sources` (sursele de venit ale gospodăriei), `expenses` (cheltuielile gospodăriei) și
-  `incomes` (veniturile gospodăriei).
+  `income_sources` (sursele de venit ale gospodăriei), `expenses` (cheltuielile gospodăriei),
+  `incomes` (veniturile gospodăriei) și `savings` (economiile gospodăriei, doar pentru admin).
 - **Frontend** (`frontend/`): aplicație React + TypeScript construită cu Vite: autentificare
   (Login, Signup), rute protejate și direcționare după rol (`/start` pentru conturile fără rol,
   aplicația cu antet pentru cele cu rol), crearea / alăturarea la o gospodărie (modale pe `/start`),
@@ -57,7 +57,8 @@ our-money/
 │   │   │                          #   api/v1/ → subcategories.urls,
 │   │   │                          #   api/v1/income-sources/ → income_sources.urls,
 │   │   │                          #   api/v1/expenses/ → expenses.urls,
-│   │   │                          #   api/v1/incomes/ → incomes.urls
+│   │   │                          #   api/v1/incomes/ → incomes.urls,
+│   │   │                          #   api/v1/savings/ → savings.urls
 │   │   ├── asgi.py
 │   │   └── wsgi.py
 │   ├── core/                      # App comun (cross-cutting)
@@ -147,6 +148,27 @@ our-money/
 │   │   └── tests/
 │   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
 │   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
+│   ├── savings/                   # Economiile gospodăriei (doar admin)
+│   │   ├── models.py              # SavingsEntry: id UUID, household (FK, CASCADE), date, person (FK user, PROTECT),
+│   │   │                          #   amount (Decimal 12,2, cu semn: > 0 depunere, < 0 retragere;
+│   │   │                          #   CheckConstraint != 0), note (max 255, opțională), created_at, updated_at;
+│   │   │                          #   related_name='savings_entries'; ordonare -date, -created_at;
+│   │   │                          #   index (household, date). Soldul nu se stochează, se calculează
+│   │   ├── selectors.py           # household_savings_entries() + select_related('person');
+│   │   │                          #   savings_summary(): balance, deposits, withdrawals (Sum + Coalesce → 0)
+│   │   ├── services.py            # create_/update_/delete_savings_entry(); refuză (ValidationError) orice
+│   │   │                          #   operație după care soldul ar deveni negativ
+│   │   ├── serializers.py         # SavingsEntrySerializer: id-uri + person_name; persoana doar din gospodărie
+│   │   │                          #   (la editare se poate păstra cea curentă); suma 0 → 400; câmpuri goale →
+│   │   │                          #   „Acest câmp nu poate fi gol.”
+│   │   ├── views.py               # SavingsEntryListView (GET, POST), SavingsEntryDetailView (PATCH, DELETE)
+│   │   │                          #   — doar admin (IsHouseholdAdmin)
+│   │   ├── urls.py                # '' (savings-entry-list), '<uuid:pk>/' (savings-entry-detail)
+│   │   ├── migrations/            # 0001_initial
+│   │   └── tests/
+│   │       ├── test_models.py     # depunere, retragere negativă, sumă 0 respinsă, ordonare, PROTECT, CASCADE
+│   │       └── test_api.py        # permisiuni (doar admin), sumar, sold negativ refuzat, adăugare, editare,
+│   │                              #   ștergere, izolare, CSRF, 405
 │   ├── households/                # Gospodării
 │   │   ├── models.py              # Household: id UUID, name, invite_code unic (XXXX-XXXX), created_at;
 │   │   │                          #   generate_invite_code() cu `secrets`, fără 0/O/1/I/L
@@ -167,8 +189,9 @@ our-money/
 │   │   ├── urls.py                # '' (household-create), 'join/' (household-join), 'current/'
 │   │   │                          #   (household-current), 'current/members/<uuid:pk>/make-admin/'
 │   │   │                          #   (household-member-make-admin)
-│   │   ├── permissions.py         # IsHouseholdMember; IsHouseholdAdminOrReadOnly (membrii citesc,
-│   │   │                          #   adminul scrie) — folosite de API-urile datelor gospodăriei
+│   │   ├── permissions.py         # IsHouseholdMember; IsHouseholdAdmin (doar adminul, și la citire);
+│   │   │                          #   IsHouseholdAdminOrReadOnly (membrii citesc, adminul scrie) — folosite
+│   │   │                          #   de API-urile datelor gospodăriei
 │   │   ├── signals.py             # pre_delete: membrii gospodăriei șterse își pierd rolul
 │   │   ├── apps.py                # ready() înregistrează signal-urile
 │   │   ├── migrations/            # 0001_initial — tabelul households_household
@@ -334,6 +357,7 @@ our-money/
 | `income_sources` | Sursele de venit | `IncomeSource` unic per gospodărie; API de listare, adăugare, editare |
 | `expenses` | Cheltuielile | `Expense` al gospodăriei; API de listare cu filtre și total, adăugare, editare, ștergere — pentru orice membru |
 | `incomes` | Veniturile | `Income` al gospodăriei; API de listare cu filtre (perioadă, persoană) și total, adăugare, editare, ștergere — pentru orice membru |
+| `savings` | Economiile | `SavingsEntry` al gospodăriei, cu sumă cu semn (depunere / retragere); API de listare cu sold, adăugare, editare, ștergere — doar pentru admin; soldul nu poate deveni negativ |
 
 **Gospodării:** un user face parte din cel mult o gospodărie (`User.household`, `ForeignKey`).
 La ștergerea unei gospodării, membrii rămân fără gospodărie (`on_delete=SET_NULL`) și își pierd
@@ -372,6 +396,10 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | POST | `/api/v1/incomes/` | membru, cu CSRF | corp `{date, person, income_source, amount, note?}`; `201` venitul; `400` sumă ≤ 0, persoană / sursă din altă gospodărie sau sursă dezactivată |
 | PATCH | `/api/v1/incomes/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` venitul; sursa / persoana curentă se pot păstra chiar dacă sursa e dezactivată sau persoana a plecat; `404` venitul altei gospodării |
 | DELETE | `/api/v1/incomes/<id>/` | membru, cu CSRF | `204`; `404` venitul altei gospodării |
+| GET | `/api/v1/savings/` | admin | `200 {savings_entries: [{id, date, amount, note, person, person_name}], balance, deposits, withdrawals}` — `amount` cu semn (negativ = retragere), `withdrawals` negativ; sumele ca text cu 2 zecimale (`"0.00"` fără mișcări); cele mai noi primele; `403` membru sau fără gospodărie |
+| POST | `/api/v1/savings/` | admin, cu CSRF | corp `{date, person, amount, note?}`; `201` mișcarea; `400` sumă 0, persoană din altă gospodărie sau `{amount: ["Soldul economiilor nu poate deveni negativ."]}` |
+| PATCH | `/api/v1/savings/<id>/` | admin, cu CSRF | oricare dintre câmpuri; `200` mișcarea; `400` sumă 0 sau sold negativ (sub `amount`); persoana curentă se poate păstra chiar dacă a plecat; `404` mișcarea altei gospodării |
+| DELETE | `/api/v1/savings/<id>/` | admin, cu CSRF | `204`; `400 {non_field_errors}` dacă soldul ar deveni negativ; `404` mișcarea altei gospodării |
 
 Userul este întors ca `{id, username, email, first_name, last_name, role, household}`; `role` este
 `"admin"`, `"user"` sau `null` (fără rol — în baza de date textul gol). `household` este `null` sau

@@ -9,6 +9,16 @@ class IsHouseholdMember(BasePermission):
         return user.is_authenticated and user.household_id is not None
 
 
+class IsHouseholdAdmin(IsHouseholdMember):
+    message = 'Doar administratorul gospodăriei poate accesa acest compartiment.'
+
+    def has_permission(self, request, view):
+        if not super().has_permission(request, view):
+            self.message = IsHouseholdMember.message
+            return False
+        return request.user.is_admin
+
+
 class IsHouseholdAdminOrReadOnly(IsHouseholdMember):
     message = 'Doar administratorul gospodăriei poate face modificări.'
 

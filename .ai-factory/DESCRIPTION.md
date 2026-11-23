@@ -26,6 +26,9 @@ secțiuni sunt „În curând”. Pagina Cheltuieli (pentru orice membru) arată
 cu filtre pe categorie și persoană și totalul lor; din ea se adaugă, se editează și se șterg
 cheltuieli (sumele se scriu cu virgulă). Pagina Venituri (pentru orice membru) arată veniturile
 unei luni, cu filtru pe persoană și totalul lor; din ea se adaugă, se editează și se șterg venituri.
+Economiile au deocamdată doar API-ul (doar pentru admin): mișcări cu sumă cu semn (depunere / retragere),
+soldul, totalul depunerilor și al retragerilor; soldul nu poate deveni negativ. Economiile sunt o
+evidență separată și nu se scad din banii lunii; în interfață vor fi un popup pe pagina Venituri.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
@@ -36,7 +39,8 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
   invitație (devine user); fiecare user face parte din cel mult o gospodărie.
 - **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, magazin, notă; listă cu filtre.
 - **Venituri** — înregistrarea și lista veniturilor.
-- **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective.
+- **Economii (savings)** — depuneri/retrageri și soldul economiilor (doar admin, evidență separată);
+  obiectivele de economisire mai târziu.
 - **Categorii, subcategorii, surse de venit și persoane** — nomenclatoarele folosite la înregistrare.
 - **Rapoarte și grafice** — sumar lunar, pe categorii și persoane, venituri vs cheltuieli.
 - **Bugete** — buget lunar pe categorie, semnalare la depășire.
