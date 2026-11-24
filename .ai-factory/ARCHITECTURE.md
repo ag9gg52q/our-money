@@ -2,8 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-23 — app-ul `savings` (economiile gospodăriei: API doar pentru admin,
-> suma cu semn, sold care nu poate deveni negativ) și permisiunea `IsHouseholdAdmin`.
+> Ultima actualizare: 2026-11-24 — interfața economiilor: popup-ul „Economii” pe pagina Venituri (doar
+> admin), cu soldul, lista operațiunilor și modalurile de adăugare / editare / ștergere; `Modal` are
+> varianta `size="wide"` și ignoră Escape-ul unui modal deschis peste el.
 
 ## Prezentare generală
 
@@ -25,7 +26,9 @@ Proiectul are două aplicații independente care comunică doar prin API REST:
   tab-urile Nomenclatoare / Template-uri / Rapoarte; în Nomenclatoare funcționează Categorii,
   Subcategorii, Surse de venit și Gospodărie — codul de invitație și membrii), Cheltuieli (pentru
   orice membru: listă pe lună cu filtre și total, adăugare, editare, ștergere), Venituri (pentru
-  orice membru: listă pe lună cu filtru pe persoană și total, adăugare, editare, ștergere), Status și 404.
+  orice membru: listă pe lună cu filtru pe persoană și total, adăugare, editare, ștergere; pentru admin,
+  butonul „Economii” deschide popup-ul economiilor: sold, operațiuni, adăugare, editare, ștergere),
+  Status și 404.
 
 Pentru backend, pattern-ul ales este **Structured Modules (Technical Layer)**: fiecare zonă de
 domeniu este o aplicație Django separată, iar în interiorul ei codul se împarte pe straturi tehnice
@@ -241,7 +244,8 @@ our-money/
 │       │   ├── Layout/            # Antetul (logo + numele gospodăriei, meniu Acasă, Cheltuieli, Venituri + Setări sistem pentru admin,
 │       │   │                      #   rol, nume, Ieșire) + <Outlet />
 │       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose;
-│       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există
+│       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există;
+│       │   │                      #   size="wide" (560px); Escape-ul unui modal deschis peste el e ignorat
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Avatar/            # Cerc cu inițiala (sau poza, prin imageUrl), culoare după nume, tooltip cu numele
@@ -271,6 +275,18 @@ our-money/
 │       │   │                      #   + valoarea curentă la editare; erori pe câmp → onSaved()
 │       │   ├── DeleteIncomeModal.tsx # Confirmarea ștergerii (sumă, dată, sursă) → deleteIncome() → onDeleted()
 │       │   └── IncomeModal.module.css # Stiluri comune celor două modale
+│       ├── savings/               # Economiile (doar admin), deschise din pagina Venituri
+│       │   ├── SavingsModal.tsx   # Popup-ul „Economii” (size="wide"): soldul, totalul depunerilor și al
+│       │   │                      #   retragerilor, lista operațiunilor (avatar, tip, dată, sumă +/− colorată,
+│       │   │                      #   notă, editare, ștergere); nota se deschide sub rând la cerere, ca la
+│       │   │                      #   Cheltuieli; deschide modalurile de mai jos peste el, apoi reîncarcă
+│       │   │                      #   lista (reloadKey)
+│       │   ├── SavingsEntryModal.tsx # Adăugare / editare: tip Depunere / Retragere (butoane radio stilizate ca
+│       │   │                      #   pastile), sumă fără semn (semnul se pune la trimitere), dată, persoană,
+│       │   │                      #   notă; eroarea de sold negativ apare sub Sumă → onSaved()
+│       │   ├── DeleteSavingsEntryModal.tsx # Confirmarea ștergerii; afișează refuzul când soldul ar deveni negativ
+│       │   ├── amount.ts          # isWithdrawal(), absoluteAmount() — lucrul cu suma cu semn
+│       │   └── SavingsModal.module.css # Stiluri comune celor trei componente
 │       ├── households/
 │       │   ├── CreateHouseholdModal.tsx # Modalul de creare: nume → createHousehold() → refreshUser()
 │       │   ├── JoinHouseholdModal.tsx   # Modalul de alăturare: cod (majuscule) → joinHousehold() → refreshUser()
@@ -286,7 +302,8 @@ our-money/
 │       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
 │       │   ├── IncomesPage.tsx    # Venituri: filtrele în URL (?month, ?person), luna cu săgeți, tabel (avatarul
 │       │   │                      #   persoanei, dată, sursă, sumă, acțiuni) cu total; nota se deschide sub rând;
-│       │   │                      #   IncomeModal / DeleteIncomeModal, apoi lista se reîncarcă (reloadKey)
+│       │   │                      #   IncomeModal / DeleteIncomeModal, apoi lista se reîncarcă (reloadKey);
+│       │   │                      #   butonul „Economii” (doar admin) deschide SavingsModal
 │       │   ├── StartPage.tsx      # Creează o gospodărie / alătură-te uneia (câte un modal); doar fără rol
 │       │   ├── SettingsPage.tsx   # Layout Setări sistem: titlu, tab-uri, <Outlet />
 │       │   ├── settings/
@@ -327,6 +344,8 @@ our-money/
 │           │                      #   Expense, ExpenseList, ExpenseFilters, ExpenseInput
 │           ├── incomes.ts         # fetchIncomes(filtre), createIncome(), updateIncome(), deleteIncome() + tipurile
 │           │                      #   Income, IncomeList, IncomeFilters, IncomeInput
+│           ├── savings.ts         # fetchSavingsEntries(), createSavingsEntry(), updateSavingsEntry(),
+│           │                      #   deleteSavingsEntry() + tipurile SavingsEntry, SavingsEntryList, SavingsEntryInput
 │           └── health.ts          # fetchHealth() + tipul HealthResponse
 ├── .github/workflows/deploy.yml   # GitHub Actions: la push pe main → migrări pe Neon + publicare pe Vercel
 ├── .ai-factory/                   # Context AI Factory (descriere, arhitectură, reguli, roadmap)
@@ -496,7 +515,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 |--------|---------|--------|
 | `pages/` | O componentă per rută (sub-paginile Setărilor în `pages/settings/`) | Afișează date și state; nu apelează `fetch` direct |
 | `components/` | Componente reutilizabile (`Layout`, `AuthLayout`, `PageLoader`, `Avatar`, `Button`, `TextField`, `Select`, `Modal`); fiecare în folderul ei, cu CSS Module | Fără apeluri la API |
-| `households/`, `categories/`, `subcategories/`, `income_sources/`, `expenses/`, `incomes/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit, cheltuielii, venitului), folosite din `pages/` | Pot apela funcții din `api/` |
+| `households/`, `categories/`, `subcategories/`, `income_sources/`, `expenses/`, `incomes/`, `savings/` | Componente de domeniu (modalurile gospodăriei, categoriei, subcategoriei, sursei de venit, cheltuielii, venitului, economiilor), folosite din `pages/` | Pot apela funcții din `api/` |
 | `utils/` | Funcții pure de formatare (sume, date) și de lucru cu lunile | Fără React, fără API |
 | `api/` | `client.ts` (apiFetch) + o funcție per endpoint + tipurile răspunsurilor | Singurul loc unde se folosește `fetch`, doar prin `apiFetch` |
 | `auth/` | Contextul de autentificare (`AuthProvider`, `useAuth`) și paznicii de rute | Componentele citesc userul doar prin `useAuth()` |

@@ -119,6 +119,7 @@ our-money/
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit
 │       ├── expenses/         # Modalurile cheltuielii: adăugare / editare, confirmarea ștergerii
 │       ├── incomes/          # Modalurile venitului: adăugare / editare, confirmarea ștergerii
+│       ├── savings/          # Popup-ul Economii (sold + operațiuni, doar admin) și modalurile operațiunii
 │       ├── households/       # Modalurile gospodăriei: creare, alăturare, redenumire, promovare la admin
 │       ├── pages/            # O componentă per pagină (Home, Start, Expenses, Incomes, Settings, Login, Signup, Status, NotFound);
 │       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit, Gospodărie)

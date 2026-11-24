@@ -26,9 +26,10 @@ secțiuni sunt „În curând”. Pagina Cheltuieli (pentru orice membru) arată
 cu filtre pe categorie și persoană și totalul lor; din ea se adaugă, se editează și se șterg
 cheltuieli (sumele se scriu cu virgulă). Pagina Venituri (pentru orice membru) arată veniturile
 unei luni, cu filtru pe persoană și totalul lor; din ea se adaugă, se editează și se șterg venituri.
-Economiile au deocamdată doar API-ul (doar pentru admin): mișcări cu sumă cu semn (depunere / retragere),
-soldul, totalul depunerilor și al retragerilor; soldul nu poate deveni negativ. Economiile sunt o
-evidență separată și nu se scad din banii lunii; în interfață vor fi un popup pe pagina Venituri.
+Economiile (doar pentru admin) se deschid din butonul „Economii” de pe pagina Venituri, într-un popup cu
+soldul, totalul depunerilor și al retragerilor și lista operațiunilor; din el se adaugă, se editează și
+se șterg depuneri și retrageri. Soldul nu poate deveni negativ. Economiile sunt o evidență separată și
+nu se scad din banii lunii.
 Planul de implementare este în `.ai-factory/ROADMAP.md`.
 
 ## Funcționalități principale
