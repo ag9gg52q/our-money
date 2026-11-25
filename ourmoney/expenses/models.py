@@ -22,6 +22,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     store = models.CharField(max_length=100)
     note = models.CharField(max_length=255, blank=True)
+    link = models.URLField(max_length=1000, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

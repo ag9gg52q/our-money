@@ -2,9 +2,8 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-24 — interfața economiilor: popup-ul „Economii” pe pagina Venituri (doar
-> admin), cu soldul, lista operațiunilor și modalurile de adăugare / editare / ștergere; `Modal` are
-> varianta `size="wide"` și ignoră Escape-ul unui modal deschis peste el.
+> Ultima actualizare: 2026-11-25 — linkul bonului la cheltuieli: câmpul opțional `Expense.link` (doar
+> http/https), în modalul cheltuielii și ca etichetă „Bon” lângă magazin în lista de cheltuieli.
 
 ## Prezentare generală
 
@@ -117,7 +116,8 @@ our-money/
 │   │   ├── models.py              # Expense: id UUID, household (FK, CASCADE), date, person (FK user, PROTECT),
 │   │   │                          #   category / subcategory (FK, RESTRICT — nu se pot șterge cât au cheltuieli,
 │   │   │                          #   dar dispar odată cu gospodăria), amount (Decimal 12,2, CheckConstraint > 0),
-│   │   │                          #   store (magazinul, max 100, obligatoriu), note (max 255, opțională), created_at, updated_at; ordonare -date, -created_at;
+│   │   │                          #   store (magazinul, max 100, obligatoriu), note (max 255, opțională),
+│   │   │                          #   link (URLField max 1000, opțional — linkul bonului), created_at, updated_at; ordonare -date, -created_at;
 │   │   │                          #   index (household, date)
 │   │   ├── selectors.py           # household_expenses(): cheltuielile gospodăriei cu filtre opționale (date_from,
 │   │   │                          #   date_to, category, subcategory, person) + select_related; expenses_total() (Sum)
@@ -126,10 +126,12 @@ our-money/
 │   │   │                          #   persoană, categorie, subcategorie doar din gospodărie și active (la editare
 │   │   │                          #   se poate păstra valoarea curentă); subcategoria trebuie să fie a categoriei;
 │   │   │                          #   câmpurile obligatorii goale ('' / null / lipsă) → „Acest câmp nu poate fi gol.”;
+│   │   │                          #   validate_link(): linkul, dacă există, doar http:// sau https:// (DRF ar accepta și ftp);
 │   │   │                          #   ExpenseFilterSerializer: parametrii de filtrare, date_from <= date_to
 │   │   ├── views.py               # ExpenseListView (GET, POST), ExpenseDetailView (PATCH, DELETE) — orice membru
 │   │   ├── urls.py                # '' (expense-list), '<uuid:pk>/' (expense-detail)
-│   │   ├── migrations/            # 0001_initial, 0002 (category / subcategory: PROTECT → RESTRICT)
+│   │   ├── migrations/            # 0001_initial, 0002 (category / subcategory: PROTECT → RESTRICT),
+│   │   │                          #   0003 (store), 0004 (link)
 │   │   └── tests/
 │   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
 │   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
@@ -265,7 +267,7 @@ our-money/
 │       │                             #   categories/CategoryModal.module.css
 │       ├── expenses/
 │       │   ├── ExpenseModal.tsx   # Adăugare / editare: dată (implicit azi), categorie → subcategoriile ei, persoană
-│       │   │                      #   (implicit userul curent), magazin, notă, sumă cu virgulă (trimisă cu punct);
+│       │   │                      #   (implicit userul curent), magazin, notă, link bon (opțional), sumă cu virgulă (trimisă cu punct);
 │       │   │                      #   opțiunile active + valoarea curentă la editare; erori pe câmp → onSaved()
 │       │   ├── DeleteExpenseModal.tsx # Confirmarea ștergerii (sumă, dată, categorie) → deleteExpense() → onDeleted()
 │       │   └── ExpenseModal.module.css # Stiluri comune celor două modale
@@ -298,7 +300,8 @@ our-money/
 │       │   │                      #   venit → /incomes, Setări sistem pentru admin), bloc gol pentru rapoarte
 │       │   ├── ExpensesPage.tsx   # Cheltuieli: filtrele în URL (?month, ?category, ?person), luna cu săgeți,
 │       │   │                      #   tabel cu lățimi fixe (avatarul persoanei, dată, categorie / subcategorie,
-│       │   │                      #   magazin, sumă, acțiuni) cu total; nota se deschide sub rând la cerere;
+│       │   │                      #   magazin, sumă, acțiuni) cu total; lângă magazin, eticheta „Bon” deschide
+│       │   │                      #   linkul bonului în tab nou (noopener noreferrer); nota se deschide sub rând la cerere;
 │       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
 │       │   ├── IncomesPage.tsx    # Venituri: filtrele în URL (?month, ?person), luna cu săgeți, tabel (avatarul
 │       │   │                      #   persoanei, dată, sursă, sumă, acțiuni) cu total; nota se deschide sub rând;
@@ -407,8 +410,8 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | GET | `/api/v1/income-sources/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar sursele de venit ale gospodăriei, după nume; `403` fără gospodărie |
 | POST | `/api/v1/income-sources/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |
 | PATCH | `/api/v1/income-sources/<id>/` | admin, cu CSRF | corp `{name?, is_active?}`; `200` sursa de venit; `404` sursa altei gospodării; nu există `DELETE` (se dezactivează) |
-| GET | `/api/v1/expenses/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `category`, `subcategory`, `person`; `200 {expenses: [{id, date, amount, store, note, person, person_name, category, category_name, subcategory, subcategory_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
-| POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?}`; `201` cheltuiala; `400` sumă ≤ 0, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
+| GET | `/api/v1/expenses/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `category`, `subcategory`, `person`; `200 {expenses: [{id, date, amount, store, note, link, person, person_name, category, category_name, subcategory, subcategory_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
+| POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?, link?}`; `201` cheltuiala; `400` sumă ≤ 0, link care nu e http(s) sau are peste 1000 de caractere, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
 | PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `404` cheltuiala altei gospodării |
 | DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204`; `404` cheltuiala altei gospodării |
 | GET | `/api/v1/incomes/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `person`; `200 {incomes: [{id, date, amount, note, person, person_name, income_source, income_source_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
@@ -453,7 +456,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 338 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`)
+  `user` (cont fără rol, parola `PASSWORD`). 406 teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`, `savings`)
 - **Dependențe:** `ourmoney/requirements.txt` — dependențele aplicației (Django, djangorestframework,
   psycopg[binary], django-environ), singurele instalate pe Vercel; `requirements.txt` din rădăcină
   le include (`-r ourmoney/requirements.txt`) și adaugă uneltele de dezvoltare (pytest, pytest-django, ruff)

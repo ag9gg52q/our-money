@@ -63,7 +63,7 @@ our-money/
 │   │   ├── urls.py           # rutele /api/v1/income-sources/
 │   │   └── tests/            # teste pytest: model, API
 │   ├── expenses/             # Cheltuielile gospodăriei
-│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), magazin, notă
+│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), magazin, notă, link bon (opțional)
 │   │   ├── selectors.py      # household_expenses() cu filtre opționale, expenses_total()
 │   │   ├── services.py       # create_expense(), update_expense(), delete_expense()
 │   │   ├── serializers.py    # validarea cheltuielii (izolare pe gospodărie) + a filtrelor listei

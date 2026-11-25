@@ -33,6 +33,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'amount',
             'store',
             'note',
+            'link',
             'person',
             'person_name',
             'category',
@@ -80,6 +81,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
                 {'subcategory': 'Subcategoria nu aparține categoriei alese.'}
             )
         return attrs
+
+    def validate_link(self, value):
+        if value and not value.lower().startswith(('http://', 'https://')):
+            raise serializers.ValidationError('Linkul trebuie să înceapă cu http:// sau https://.')
+        return value
 
 
 class ExpenseFilterSerializer(serializers.Serializer):

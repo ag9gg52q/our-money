@@ -94,7 +94,9 @@ def notes(response):
 
 
 def test_list_response_format(admin, subcategory):
-    expense = make_expense(admin, subcategory, store='Kaufland', note='Lapte')
+    expense = make_expense(
+        admin, subcategory, store='Kaufland', note='Lapte', link='https://bon.md/123'
+    )
 
     response = client_for(admin).get(LIST_URL)
 
@@ -107,6 +109,7 @@ def test_list_response_format(admin, subcategory):
                 'amount': '12.50',
                 'store': 'Kaufland',
                 'note': 'Lapte',
+                'link': 'https://bon.md/123',
                 'person': str(admin.id),
                 'person_name': 'admin',
                 'category': str(subcategory.category_id),
@@ -251,6 +254,59 @@ def test_create_store_too_long_returns_400(admin, subcategory):
 
     assert response.status_code == 400
     assert 'store' in response.json()
+
+
+def test_create_saves_link(admin, subcategory):
+    data = payload(admin, subcategory, link='https://bon.md/123?id=abc')
+
+    response = client_for(admin).post(LIST_URL, data, format='json')
+
+    assert response.status_code == 201
+    assert response.json()['link'] == 'https://bon.md/123?id=abc'
+    assert Expense.objects.get().link == 'https://bon.md/123?id=abc'
+
+
+def test_create_link_is_optional(admin, subcategory):
+    response = client_for(admin).post(LIST_URL, payload(admin, subcategory), format='json')
+
+    assert response.status_code == 201
+    assert Expense.objects.get().link == ''
+
+
+def test_create_accepts_uppercase_scheme(admin, subcategory):
+    data = payload(admin, subcategory, link='HTTPS://bon.md/123')
+
+    response = client_for(admin).post(LIST_URL, data, format='json')
+
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize('link', ['javascript:alert(1)', 'ftp://bon.md/1', 'bon.md/1'])
+def test_create_with_invalid_link_returns_400(admin, subcategory, link):
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, link=link), format='json'
+    )
+
+    assert response.status_code == 400
+    assert 'link' in response.json()
+    assert not Expense.objects.exists()
+
+
+def test_create_with_ftp_link_explains_allowed_schemes(admin, subcategory):
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, link='ftp://bon.md/1'), format='json'
+    )
+
+    assert response.json() == {'link': ['Linkul trebuie să înceapă cu http:// sau https://.']}
+
+
+def test_create_link_too_long_returns_400(admin, subcategory):
+    data = payload(admin, subcategory, link='https://bon.md/' + 'a' * 1000)
+
+    response = client_for(admin).post(LIST_URL, data, format='json')
+
+    assert response.status_code == 400
+    assert 'link' in response.json()
 
 
 @pytest.mark.parametrize('field', ['date', 'person', 'category', 'subcategory', 'amount', 'store'])
@@ -525,6 +581,16 @@ def test_edit_store(admin, expense):
     assert response.status_code == 200
     expense.refresh_from_db()
     assert expense.store == 'Lidl'
+
+
+def test_edit_can_clear_link(admin, subcategory):
+    expense = make_expense(admin, subcategory, link='https://bon.md/123')
+
+    response = client_for(admin).patch(detail_url(expense.id), {'link': ''}, format='json')
+
+    assert response.status_code == 200
+    expense.refresh_from_db()
+    assert expense.link == ''
 
 
 def test_edit_updates_updated_at(admin, expense):

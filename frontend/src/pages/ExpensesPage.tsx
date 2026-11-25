@@ -263,9 +263,39 @@ export default function ExpensesPage() {
                         </span>
                       </td>
                       <td className={styles.store}>
-                        {expense.store || (
-                          <span className={styles.storeEmpty}>—</span>
-                        )}
+                        <div className={styles.storeCell}>
+                          <span className={styles.storeName}>
+                            {expense.store || (
+                              <span className={styles.storeEmpty}>—</span>
+                            )}
+                          </span>
+                          {expense.link && (
+                            <a
+                              href={expense.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.storeLink}
+                              aria-label={`Deschide bonul cheltuielii din ${formatDate(expense.date)}`}
+                              title="Deschide bonul într-un tab nou"
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M4 2v20l3-2 3 2 2-2 2 2 3-2 3 2V2l-3 2-3-2-2 2-2-2-3 2z" />
+                                <path d="M8 9h8M8 13h6" />
+                              </svg>
+                              Bon
+                            </a>
+                          )}
+                        </div>
                       </td>
                       <td className={styles.amount}>
                         {formatAmount(expense.amount)}
