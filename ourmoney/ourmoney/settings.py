@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'income_sources',
     'expenses',
     'incomes',
+    'savings',
 ]
 
 AUTH_USER_MODEL = 'users.User'

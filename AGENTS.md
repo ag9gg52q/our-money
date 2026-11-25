@@ -30,7 +30,8 @@ our-money/
 │   │   ├── urls.py           # admin/, api/v1/ → core.urls, api/v1/auth/ → users.urls,
 │   │   │                     #   api/v1/households/ → households.urls, api/v1/categories/ → categories.urls,
 │   │   │                     #   api/v1/ → subcategories.urls, api/v1/income-sources/ → income_sources.urls,
-│   │   │                     #   api/v1/expenses/ → expenses.urls, api/v1/incomes/ → incomes.urls
+│   │   │                     #   api/v1/expenses/ → expenses.urls, api/v1/incomes/ → incomes.urls,
+│   │   │                     #   api/v1/savings/ → savings.urls
 │   │   ├── asgi.py           # Entry point ASGI
 │   │   └── wsgi.py           # Entry point WSGI
 │   ├── core/                 # App comun: endpoint-ul de health
@@ -77,6 +78,14 @@ our-money/
 │   │   ├── views.py          # listă cu filtre și total + adăugare (GET, POST), editare + ștergere (PATCH, DELETE)
 │   │   ├── urls.py           # rutele /api/v1/incomes/
 │   │   └── tests/            # teste pytest: model, API
+│   ├── savings/              # Economiile gospodăriei (doar admin)
+│   │   ├── models.py         # SavingsEntry: dată, persoană, sumă cu semn (> 0 depunere, < 0 retragere, != 0), notă
+│   │   ├── selectors.py      # household_savings_entries(), savings_summary() — sold, depuneri, retrageri
+│   │   ├── services.py       # create_/update_/delete_savings_entry() — soldul nu poate deveni negativ
+│   │   ├── serializers.py    # validarea mișcării (izolare pe gospodărie, sumă diferită de 0)
+│   │   ├── views.py          # listă cu sumar + adăugare (GET, POST), editare + ștergere (PATCH, DELETE)
+│   │   ├── urls.py           # rutele /api/v1/savings/
+│   │   └── tests/            # teste pytest: model, API
 │   ├── households/           # Gospodării
 │   │   ├── models.py         # Household: id UUID, nume, cod de invitație unic
 │   │   ├── selectors.py      # household_members() — membrii gospodăriei, ordonați
@@ -85,7 +94,7 @@ our-money/
 │   │   │                     #   make_admin(), update_household()
 │   │   ├── views.py          # creare, alăturare, gospodăria curentă (GET, PATCH), promovare la admin
 │   │   ├── urls.py           # rutele /api/v1/households/
-│   │   ├── permissions.py    # IsHouseholdMember, IsHouseholdAdminOrReadOnly
+│   │   ├── permissions.py    # IsHouseholdMember, IsHouseholdAdmin, IsHouseholdAdminOrReadOnly
 │   │   ├── signals.py        # la ștergerea gospodăriei, membrii își pierd rolul
 │   │   └── tests/            # teste pytest: model, API
 │   └── users/                # Utilizatori și autentificare
@@ -110,6 +119,7 @@ our-money/
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit
 │       ├── expenses/         # Modalurile cheltuielii: adăugare / editare, confirmarea ștergerii
 │       ├── incomes/          # Modalurile venitului: adăugare / editare, confirmarea ștergerii
+│       ├── savings/          # Popup-ul Economii (sold + operațiuni, doar admin) și modalurile operațiunii
 │       ├── households/       # Modalurile gospodăriei: creare, alăturare, redenumire, promovare la admin
 │       ├── pages/            # O componentă per pagină (Home, Start, Expenses, Incomes, Settings, Login, Signup, Status, NotFound);
 │       │                     #   settings/ — sub-paginile Setărilor sistem (Categorii, Subcategorii, Surse de venit, Gospodărie)
@@ -150,6 +160,7 @@ our-money/
 | `ourmoney/income_sources/views.py` | API-ul surselor de venit `/api/v1/income-sources/` (listă, adăugare, editare) |
 | `ourmoney/expenses/views.py` | API-ul cheltuielilor `/api/v1/expenses/` (listă cu filtre și total, adăugare, editare, ștergere) |
 | `ourmoney/incomes/views.py` | API-ul veniturilor `/api/v1/incomes/` (listă cu filtre și total, adăugare, editare, ștergere) |
+| `ourmoney/savings/views.py` | API-ul economiilor `/api/v1/savings/` (listă cu sold, adăugare, editare, ștergere — doar admin) |
 | `ourmoney/households/permissions.py` | Permisiunile pe gospodărie, folosite de API-urile datelor gospodăriei |
 | `pyproject.toml` | Regulile Ruff pentru backend |
 | `ourmoney/ourmoney/wsgi.py` / `asgi.py` | Entry points pentru servere de producție |

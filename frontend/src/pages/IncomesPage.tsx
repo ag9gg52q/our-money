@@ -3,11 +3,13 @@ import { useSearchParams } from 'react-router'
 
 import { type Income, type IncomeList, fetchIncomes } from '../api/incomes'
 import { fetchCurrentHousehold } from '../api/households'
+import { useAuth } from '../auth/useAuth'
 import Avatar from '../components/Avatar/Avatar'
 import Button from '../components/Button/Button'
 import Select, { type SelectOption } from '../components/Select/Select'
 import DeleteIncomeModal from '../incomes/DeleteIncomeModal'
 import IncomeModal from '../incomes/IncomeModal'
+import SavingsModal from '../savings/SavingsModal'
 import { formatAmount, formatDate } from '../utils/format'
 import {
   currentMonth,
@@ -23,6 +25,9 @@ type LoadState = 'loading' | 'ready' | 'error'
 const ALL_PEOPLE: SelectOption = { value: '', label: 'Toate persoanele' }
 
 export default function IncomesPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+  const [isSavingsOpen, setIsSavingsOpen] = useState(false)
   const [data, setData] = useState<IncomeList | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
   const [personOptions, setPersonOptions] = useState([ALL_PEOPLE])
@@ -106,21 +111,32 @@ export default function IncomesPage() {
             Toate veniturile gospodăriei, de la toți membrii.
           </p>
         </div>
-        <Button type="button" onClick={() => setEditing('new')}>
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Adaugă venit
-        </Button>
+        <div className={styles.headerActions}>
+          {isAdmin && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setIsSavingsOpen(true)}
+            >
+              Economii
+            </Button>
+          )}
+          <Button type="button" onClick={() => setEditing('new')}>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Adaugă venit
+          </Button>
+        </div>
       </div>
 
       <section className={styles.card} aria-label="Lista veniturilor">
@@ -349,6 +365,10 @@ export default function IncomesPage() {
           onClose={() => setEditing(null)}
           onSaved={handleSaved}
         />
+      )}
+
+      {isSavingsOpen && (
+        <SavingsModal onClose={() => setIsSavingsOpen(false)} />
       )}
 
       {deleting && (

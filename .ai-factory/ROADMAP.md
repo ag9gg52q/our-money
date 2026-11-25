@@ -18,7 +18,7 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 - [x] **Gospodărie** — numele, codul de invitație și membrii, în Nomenclatoare → Gospodărie
 - [x] **Cheltuieli** — adăugare/editare cu dată, persoană, categorie, subcategorie, sumă, notă; listă cu filtre
 - [x] **Venituri** — înregistrarea și lista veniturilor
-- [ ] **Economii (savings)** — depuneri/retrageri, soldul economiilor, obiective de economisire
+- [x] **Economii (savings)** — depuneri/retrageri și soldul economiilor (obiectivele de economisire, mai târziu)
 - [ ] **Dashboard și rapoarte** — sumar lunar, pe categorii și persoane, venituri vs cheltuieli, grafice
 - [ ] **Bugete** — buget lunar pe categorie, semnalarea depășirii
 - [ ] **Multi-valută** — sume în valute diferite, conversie la valuta de bază
@@ -42,3 +42,4 @@ Abordare: **verticală** — fiecare milestone livrează funcționalitatea compl
 | Gospodărie | 2026-11-03 |
 | Cheltuieli | 2026-11-18 |
 | Venituri | 2026-11-18 |
+| Economii | 2026-11-24 |
