@@ -32,6 +32,7 @@ const FIELDS = [
   'amount',
   'store',
   'note',
+  'link',
 ]
 
 // În formular suma se scrie cu virgulă (10,59); API-ul lucrează cu punct (10.59).
@@ -57,6 +58,7 @@ export default function ExpenseModal({
   const [amount, setAmount] = useState(toDisplayAmount(expense?.amount ?? ''))
   const [store, setStore] = useState(expense?.store ?? '')
   const [note, setNote] = useState(expense?.note ?? '')
+  const [link, setLink] = useState(expense?.link ?? '')
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([])
   const [subcategoryOptions, setSubcategoryOptions] = useState<SelectOption[]>(
     [],
@@ -143,6 +145,7 @@ export default function ExpenseModal({
       amount: toApiAmount(amount),
       store: store.trim(),
       note: note.trim(),
+      link: link.trim(),
     }
 
     try {
@@ -165,6 +168,7 @@ export default function ExpenseModal({
   const amountError = getErrorMessage(error, 'amount')
   const storeError = getErrorMessage(error, 'store')
   const noteError = getErrorMessage(error, 'note')
+  const linkError = getErrorMessage(error, 'link')
 
   const hasFieldError = FIELDS.some((field) => getErrorMessage(error, field))
   const formError =
@@ -233,6 +237,15 @@ export default function ExpenseModal({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           error={noteError}
+        />
+        <TextField
+          label="Link (opțional)"
+          type="url"
+          placeholder="https://..."
+          maxLength={1000}
+          value={link}
+          onChange={(event) => setLink(event.target.value)}
+          error={linkError}
         />
         <TextField
           label="Sumă (lei)"

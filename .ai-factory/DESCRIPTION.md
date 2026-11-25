@@ -24,7 +24,8 @@ de venit ale gospodăriei, și Gospodărie: adminul redenumește gospodăria, ve
 face administrator un membru (rolul nu se mai retrage); celelalte
 secțiuni sunt „În curând”. Pagina Cheltuieli (pentru orice membru) arată cheltuielile unei luni,
 cu filtre pe categorie și persoană și totalul lor; din ea se adaugă, se editează și se șterg
-cheltuieli (sumele se scriu cu virgulă). Pagina Venituri (pentru orice membru) arată veniturile
+cheltuieli (sumele se scriu cu virgulă); o cheltuială poate avea linkul bonului, deschis din eticheta „Bon”
+de lângă magazin. Pagina Venituri (pentru orice membru) arată veniturile
 unei luni, cu filtru pe persoană și totalul lor; din ea se adaugă, se editează și se șterg venituri.
 Economiile (doar pentru admin) se deschid din butonul „Economii” de pe pagina Venituri, într-un popup cu
 soldul, totalul depunerilor și al retragerilor și lista operațiunilor; din el se adaugă, se editează și
@@ -38,7 +39,7 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
   sistem) și `user` (cheltuieli și venituri).
 - **Gospodării** — un user creează o gospodărie (devine admin) sau se alătură uneia cu un cod de
   invitație (devine user); fiecare user face parte din cel mult o gospodărie.
-- **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, magazin, notă; listă cu filtre.
+- **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, magazin, notă, link la bon (opțional); listă cu filtre.
 - **Venituri** — înregistrarea și lista veniturilor.
 - **Economii (savings)** — depuneri/retrageri și soldul economiilor (doar admin, evidență separată);
   obiectivele de economisire mai târziu.

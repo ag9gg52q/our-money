@@ -6,6 +6,7 @@ export type Expense = {
   amount: string
   store: string
   note: string
+  link: string
   person: string
   person_name: string
   category: string
@@ -29,7 +30,14 @@ export type ExpenseFilters = {
 
 export type ExpenseInput = Pick<
   Expense,
-  'date' | 'person' | 'category' | 'subcategory' | 'amount' | 'store' | 'note'
+  | 'date'
+  | 'person'
+  | 'category'
+  | 'subcategory'
+  | 'amount'
+  | 'store'
+  | 'note'
+  | 'link'
 >
 
 export function fetchExpenses(filters: ExpenseFilters): Promise<ExpenseList> {
