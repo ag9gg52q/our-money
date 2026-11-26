@@ -40,6 +40,8 @@ Planul de implementare este în `.ai-factory/ROADMAP.md`.
 - **Gospodării** — un user creează o gospodărie (devine admin) sau se alătură uneia cu un cod de
   invitație (devine user); fiecare user face parte din cel mult o gospodărie.
 - **Cheltuieli** — dată, persoană, categorie, subcategorie, sumă, magazin, notă, link la bon (opțional); listă cu filtre.
+  Datorii: o parte dintr-o cheltuială poate fi datorată de un membru sau de cineva din afară; la întoarcere
+  cheltuiala se ajustează (trece pe membru / se împarte, sau scade și la 0 se șterge); anularea nu o schimbă.
 - **Venituri** — înregistrarea și lista veniturilor.
 - **Economii (savings)** — depuneri/retrageri și soldul economiilor (doar admin, evidență separată);
   obiectivele de economisire mai târziu.

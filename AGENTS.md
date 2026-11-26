@@ -63,11 +63,14 @@ our-money/
 │   │   ├── urls.py           # rutele /api/v1/income-sources/
 │   │   └── tests/            # teste pytest: model, API
 │   ├── expenses/             # Cheltuielile gospodăriei
-│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), magazin, notă, link bon (opțional)
-│   │   ├── selectors.py      # household_expenses() cu filtre opționale, expenses_total()
-│   │   ├── services.py       # create_expense(), update_expense(), delete_expense()
-│   │   ├── serializers.py    # validarea cheltuielii (izolare pe gospodărie) + a filtrelor listei
-│   │   ├── views.py          # listă cu filtre și total + adăugare (GET, POST), editare + ștergere (PATCH, DELETE)
+│   │   ├── models.py         # Expense: dată, persoană, categorie, subcategorie, sumă (Decimal > 0), magazin, notă, link bon (opțional);
+│   │   │                     #   ExpenseDebt: cine datorează o parte (membru sau nume din afară), sumă, deschisă / întoarsă / anulată
+│   │   ├── selectors.py      # household_expenses() cu filtre opționale și datorii, expenses_total(), household_open_debts()
+│   │   ├── services.py       # create_expense(), update_expense() (cu datoriile, atomic), delete_expense(),
+│   │   │                     #   settle_debt() (ajustează cheltuiala), cancel_debt()
+│   │   ├── serializers.py    # validarea cheltuielii și a datoriilor ei (izolare pe gospodărie) + a filtrelor listei
+│   │   ├── views.py          # listă cu filtre și total + adăugare (GET, POST), editare + ștergere (PATCH, DELETE);
+│   │   │                     #   datorii deschise (GET), întoarcere și anulare (POST)
 │   │   ├── urls.py           # rutele /api/v1/expenses/
 │   │   └── tests/            # teste pytest: model, API
 │   ├── incomes/              # Veniturile gospodăriei
@@ -158,7 +161,7 @@ our-money/
 | `ourmoney/categories/views.py` | API-ul categoriilor `/api/v1/categories/` (listă, adăugare, editare) |
 | `ourmoney/subcategories/views.py` | API-ul subcategoriilor `/api/v1/categories/<id>/subcategories/` (listă, adăugare), `/api/v1/subcategories/<id>/` (editare) |
 | `ourmoney/income_sources/views.py` | API-ul surselor de venit `/api/v1/income-sources/` (listă, adăugare, editare) |
-| `ourmoney/expenses/views.py` | API-ul cheltuielilor `/api/v1/expenses/` (listă cu filtre și total, adăugare, editare, ștergere) |
+| `ourmoney/expenses/views.py` | API-ul cheltuielilor `/api/v1/expenses/` (listă cu filtre și total, adăugare, editare, ștergere) și al datoriilor `/api/v1/expenses/debts/` (deschise, întoarcere, anulare) |
 | `ourmoney/incomes/views.py` | API-ul veniturilor `/api/v1/incomes/` (listă cu filtre și total, adăugare, editare, ștergere) |
 | `ourmoney/savings/views.py` | API-ul economiilor `/api/v1/savings/` (listă cu sold, adăugare, editare, ștergere — doar admin) |
 | `ourmoney/households/permissions.py` | Permisiunile pe gospodărie, folosite de API-urile datelor gospodăriei |

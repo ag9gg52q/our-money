@@ -6,7 +6,12 @@ from rest_framework.views import APIView
 from households.permissions import IsHouseholdMember
 
 from . import selectors, services
-from .serializers import ExpenseFilterSerializer, ExpenseSerializer
+from .serializers import (
+    ExpenseFilterSerializer,
+    ExpenseSerializer,
+    OpenDebtSerializer,
+    SettleDebtSerializer,
+)
 
 
 class ExpenseListView(APIView):
@@ -62,4 +67,36 @@ class ExpenseDetailView(APIView):
             selectors.household_expenses(household_id=request.user.household_id), pk=pk
         )
         services.delete_expense(expense=expense)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class OpenDebtListView(APIView):
+    permission_classes = [IsHouseholdMember]
+
+    def get(self, request):
+        debts = selectors.household_open_debts(household_id=request.user.household_id)
+        return Response({'debts': OpenDebtSerializer(debts, many=True).data})
+
+
+class DebtSettleView(APIView):
+    permission_classes = [IsHouseholdMember]
+
+    def post(self, request, pk):
+        debt = get_object_or_404(
+            selectors.household_debts(household_id=request.user.household_id), pk=pk
+        )
+        serializer = SettleDebtSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.settle_debt(debt=debt, amount=serializer.validated_data['amount'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DebtCancelView(APIView):
+    permission_classes = [IsHouseholdMember]
+
+    def post(self, request, pk):
+        debt = get_object_or_404(
+            selectors.household_debts(household_id=request.user.household_id), pk=pk
+        )
+        services.cancel_debt(debt=debt)
         return Response(status=status.HTTP_204_NO_CONTENT)
