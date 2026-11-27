@@ -3,10 +3,12 @@ from decimal import Decimal
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from categories.models import Category
-from expenses.models import Expense
+from expenses import services
+from expenses.models import DUPLICATE_OPEN_DEBT, Expense, ExpenseDebt
 from households.services import create_household, join_household
 from subcategories.models import Subcategory
 from users.models import User
@@ -97,6 +99,7 @@ def test_list_response_format(admin, subcategory):
     expense = make_expense(
         admin, subcategory, store='Kaufland', note='Lapte', link='https://bon.md/123'
     )
+    debt = ExpenseDebt.objects.create(expense=expense, debtor_name='Ion', amount='5.00')
 
     response = client_for(admin).get(LIST_URL)
 
@@ -116,6 +119,17 @@ def test_list_response_format(admin, subcategory):
                 'category_name': 'Alimente',
                 'subcategory': str(subcategory.id),
                 'subcategory_name': 'Lactate',
+                'debts': [
+                    {
+                        'id': str(debt.id),
+                        'debtor': None,
+                        'debtor_name': 'Ion',
+                        'debtor_label': 'Ion',
+                        'amount': '5.00',
+                        'status': 'open',
+                        'settled_at': None,
+                    }
+                ],
             }
         ],
         'total': '12.50',
@@ -161,14 +175,15 @@ def test_list_keeps_expenses_with_deactivated_category(admin, category, subcateg
 
 
 def test_list_query_count_does_not_grow_with_expenses(
-    admin, subcategory, django_assert_max_num_queries
+    admin, member, subcategory, django_assert_max_num_queries
 ):
     for _ in range(5):
-        make_expense(admin, subcategory)
+        expense = make_expense(admin, subcategory)
+        ExpenseDebt.objects.create(expense=expense, debtor=member, amount='1.00')
     client = client_for(admin)
 
-    # O cerere pentru listă (cu JOIN-uri) și una pentru total.
-    with django_assert_max_num_queries(2):
+    # Lista (cu JOIN-uri), datoriile tuturor cheltuielilor (cu datornicii) și totalul.
+    with django_assert_max_num_queries(3):
         response = client.get(LIST_URL)
 
     assert len(response.json()['expenses']) == 5
@@ -758,3 +773,617 @@ def test_delete_requires_csrf(admin, expense):
 
     assert response.status_code == 403
     assert Expense.objects.count() == 1
+
+
+# Datorii la adăugare și editare
+
+
+@pytest.fixture
+def dinner(admin, subcategory):
+    return make_expense(
+        admin,
+        subcategory,
+        amount=Decimal('300.00'),
+        store='La Plăcinte',
+        note='Cină',
+        link='https://bon.md/1',
+    )
+
+
+def make_debt(expense, amount='100.00', **debtor):
+    return ExpenseDebt.objects.create(
+        expense=expense, amount=Decimal(amount), **(debtor or {'debtor_name': 'Ion'})
+    )
+
+
+def close_debt(debt, status):
+    debt.status = status
+    debt.save()
+    return debt
+
+
+CLOSED_STATUSES = [ExpenseDebt.Status.SETTLED, ExpenseDebt.Status.CANCELED]
+
+
+def test_create_with_member_and_external_debts(admin, member, subcategory):
+    data = payload(
+        admin,
+        subcategory,
+        amount='300.00',
+        debts=[
+            {'debtor': str(member.id), 'amount': '100.00'},
+            {'debtor_name': 'Ion', 'amount': '50.00'},
+        ],
+    )
+
+    response = client_for(admin).post(LIST_URL, data, format='json')
+
+    assert response.status_code == 201
+    debts = response.json()['debts']
+    assert [(d['debtor_label'], d['amount'], d['status']) for d in debts] == [
+        ('membru', '100.00', 'open'),
+        ('Ion', '50.00', 'open'),
+    ]
+    expense = Expense.objects.get()
+    assert expense.amount == Decimal('300.00')
+    assert expense.debts.count() == 2
+
+
+def test_create_without_debts_has_empty_list(admin, subcategory):
+    response = client_for(admin).post(LIST_URL, payload(admin, subcategory), format='json')
+
+    assert response.status_code == 201
+    assert response.json()['debts'] == []
+
+
+def test_create_debts_equal_to_amount_are_allowed(admin, subcategory):
+    debts = [{'debtor_name': 'Ion', 'amount': '100.00'}]
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, amount='100.00', debts=debts), format='json'
+    )
+
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize(
+    'debt',
+    [
+        {'amount': '10.00'},
+        {'debtor_name': '   ', 'amount': '10.00'},
+        {'debtor': None, 'debtor_name': '', 'amount': '10.00'},
+    ],
+)
+def test_create_debt_without_member_or_name_returns_400(admin, subcategory, debt):
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=[debt]), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json()['debts']['0']['debtor'] == ['Alege un membru sau scrie un nume.']
+    assert Expense.objects.count() == 0
+
+
+def test_create_debt_with_member_and_name_returns_400(admin, member, subcategory):
+    debt = {'debtor': str(member.id), 'debtor_name': 'Ion', 'amount': '10.00'}
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=[debt]), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json()['debts']['0']['debtor'] == ['Alege un membru sau scrie un nume.']
+
+
+def test_create_debt_with_member_of_other_household_returns_400(admin, other_admin, subcategory):
+    debt = {'debtor': str(other_admin.id), 'amount': '10.00'}
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=[debt]), format='json'
+    )
+
+    assert response.status_code == 400
+    assert 'debtor' in response.json()['debts']['0']
+    assert Expense.objects.count() == 0
+
+
+@pytest.mark.parametrize('amount', ['0', '-5', '', 'abc'])
+def test_create_debt_with_invalid_amount_returns_400(admin, subcategory, amount):
+    debt = {'debtor_name': 'Ion', 'amount': amount}
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=[debt]), format='json'
+    )
+
+    assert response.status_code == 400
+    assert 'amount' in response.json()['debts']['0']
+
+
+@pytest.mark.parametrize('names', [('Ion', 'Ion'), ('Ion', 'ion')])
+def test_create_same_external_debtor_twice_returns_400(admin, subcategory, names):
+    debts = [{'debtor_name': name, 'amount': '1.00'} for name in names]
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=debts), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [DUPLICATE_OPEN_DEBT]}
+
+
+def test_create_same_member_debtor_twice_returns_400(admin, member, subcategory):
+    debts = [{'debtor': str(member.id), 'amount': '1.00'}] * 2
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=debts), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [DUPLICATE_OPEN_DEBT]}
+
+
+def test_create_debts_exceeding_amount_returns_400_and_saves_nothing(admin, member, subcategory):
+    debts = [
+        {'debtor': str(member.id), 'amount': '60.00'},
+        {'debtor_name': 'Ion', 'amount': '40.01'},
+    ]
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, amount='100.00', debts=debts), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [services.DEBTS_EXCEED_AMOUNT]}
+    # Cheltuiala și datoriile fuseseră deja scrise; tranzacția le-a anulat.
+    assert Expense.objects.count() == 0
+    assert ExpenseDebt.objects.count() == 0
+
+
+def test_create_debt_of_payer_returns_400(admin, subcategory):
+    debt = {'debtor': str(admin.id), 'amount': '10.00'}
+
+    response = client_for(admin).post(
+        LIST_URL, payload(admin, subcategory, debts=[debt]), format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [services.DEBTOR_IS_PAYER]}
+    assert Expense.objects.count() == 0
+
+
+def test_edit_updates_existing_debt_and_keeps_its_id(admin, dinner):
+    debt = make_debt(dinner)
+    debts = [{'id': str(debt.id), 'debtor_name': 'Ion Popa', 'amount': '80.00'}]
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': debts}, format='json')
+
+    assert response.status_code == 200
+    assert [d['id'] for d in response.json()['debts']] == [str(debt.id)]
+    debt.refresh_from_db()
+    assert (debt.debtor_name, debt.amount) == ('Ion Popa', Decimal('80.00'))
+
+
+def test_edit_adds_new_debt(admin, member, dinner):
+    debt = make_debt(dinner)
+    debts = [
+        {'id': str(debt.id), 'debtor_name': 'Ion', 'amount': '100.00'},
+        {'debtor': str(member.id), 'amount': '50.00'},
+    ]
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': debts}, format='json')
+
+    assert response.status_code == 200
+    assert dinner.debts.count() == 2
+
+
+def test_edit_removes_debts_missing_from_list(admin, dinner):
+    make_debt(dinner)
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': []}, format='json')
+
+    assert response.status_code == 200
+    assert response.json()['debts'] == []
+    assert ExpenseDebt.objects.count() == 0
+
+
+def test_edit_without_debts_keeps_debts(admin, dinner):
+    make_debt(dinner)
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'store': 'Andy'}, format='json')
+
+    assert response.status_code == 200
+    assert dinner.debts.count() == 1
+
+
+def test_edit_can_replace_debt_of_same_person(admin, dinner):
+    make_debt(dinner)
+    debts = [{'debtor_name': 'ion', 'amount': '30.00'}]
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': debts}, format='json')
+
+    assert response.status_code == 200
+    assert [(d.debtor_name, d.amount) for d in dinner.debts.all()] == [('ion', Decimal('30.00'))]
+
+
+@pytest.mark.parametrize('status', CLOSED_STATUSES)
+def test_edit_does_not_touch_closed_debts(admin, dinner, status):
+    closed = close_debt(make_debt(dinner), status)
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': []}, format='json')
+
+    assert response.status_code == 200
+    closed.refresh_from_db()
+    assert closed.status == status
+    # Răspunsul arată tot istoricul, nu doar datoriile deschise.
+    assert [d['status'] for d in response.json()['debts']] == [status]
+
+
+@pytest.mark.parametrize('status', CLOSED_STATUSES)
+def test_edit_cannot_change_closed_debt(admin, dinner, status):
+    closed = close_debt(make_debt(dinner), status)
+    debts = [{'id': str(closed.id), 'debtor_name': 'Ion', 'amount': '1.00'}]
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': debts}, format='json')
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [services.DEBT_NOT_FOUND]}
+    closed.refresh_from_db()
+    assert closed.amount == Decimal('100.00')
+
+
+def test_edit_cannot_change_debt_of_other_expense(admin, subcategory, dinner):
+    other_debt = make_debt(make_expense(admin, subcategory, amount=Decimal('500.00')))
+    debts = [{'id': str(other_debt.id), 'debtor_name': 'Ion', 'amount': '1.00'}]
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'debts': debts}, format='json')
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [services.DEBT_NOT_FOUND]}
+    other_debt.refresh_from_db()
+    assert other_debt.amount == Decimal('100.00')
+    assert dinner.debts.count() == 0
+
+
+def test_edit_amount_below_open_debts_returns_400(admin, dinner):
+    make_debt(dinner)
+
+    response = client_for(admin).patch(detail_url(dinner.id), {'amount': '99.99'}, format='json')
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [services.DEBTS_EXCEED_AMOUNT]}
+    dinner.refresh_from_db()
+    assert dinner.amount == Decimal('300.00')
+
+
+def test_edit_person_to_debtor_returns_400(admin, member, dinner):
+    make_debt(dinner, debtor=member)
+
+    response = client_for(admin).patch(
+        detail_url(dinner.id), {'person': str(member.id)}, format='json'
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {'debts': [services.DEBTOR_IS_PAYER]}
+    dinner.refresh_from_db()
+    assert dinner.person == admin
+
+
+# Datorii deschise
+
+DEBTS_URL = reverse('debt-list')
+
+
+def test_open_debts_response_format(admin, member, dinner):
+    debt = make_debt(dinner, debtor=member)
+
+    response = client_for(member).get(DEBTS_URL)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        'debts': [
+            {
+                'id': str(debt.id),
+                'debtor': str(member.id),
+                'debtor_name': '',
+                'debtor_label': 'membru',
+                'amount': '100.00',
+                'status': 'open',
+                'settled_at': None,
+                'expense': str(dinner.id),
+                'expense_date': '2026-11-05',
+                'expense_store': 'La Plăcinte',
+                'expense_amount': '300.00',
+                'payer_name': 'admin',
+            }
+        ]
+    }
+
+
+def test_open_debts_lists_only_open_debts_from_all_months(admin, subcategory):
+    october = make_expense(admin, subcategory, date=datetime.date(2026, 10, 3))
+    november = make_expense(admin, subcategory, date=datetime.date(2026, 11, 20))
+    make_debt(october, amount='1.00', debtor_name='Octombrie')
+    make_debt(november, amount='2.00', debtor_name='Noiembrie')
+    close_debt(make_debt(november, amount='3.00', debtor_name='Întoarsă'), CLOSED_STATUSES[0])
+    close_debt(make_debt(october, amount='4.00', debtor_name='Anulată'), CLOSED_STATUSES[1])
+
+    response = client_for(admin).get(DEBTS_URL)
+
+    # Cele mai noi cheltuieli primele.
+    assert [d['debtor_label'] for d in response.json()['debts']] == ['Noiembrie', 'Octombrie']
+
+
+def test_open_debts_are_isolated_by_household(other_admin, dinner):
+    make_debt(dinner)
+
+    response = client_for(other_admin).get(DEBTS_URL)
+
+    assert response.json() == {'debts': []}
+
+
+def test_open_debts_query_count_does_not_grow(admin, member, dinner, django_assert_num_queries):
+    make_debt(dinner, debtor=member)
+    make_debt(dinner, debtor_name='Ion')
+    make_debt(dinner, debtor_name='Ana')
+    client = client_for(admin)
+
+    # O singură interogare, cu JOIN-uri spre datornic, cheltuială și plătitor.
+    with django_assert_num_queries(1):
+        response = client.get(DEBTS_URL)
+
+    assert len(response.json()['debts']) == 3
+
+
+def test_open_debts_without_household_returns_403(user):
+    response = client_for(user).get(DEBTS_URL)
+
+    assert response.status_code == 403
+
+
+# Întoarcerea datoriei
+
+
+def settle_url(debt_id):
+    return reverse('debt-settle', args=[debt_id])
+
+
+def cancel_url(debt_id):
+    return reverse('debt-cancel', args=[debt_id])
+
+
+def settle(user, debt, amount):
+    return client_for(user).post(settle_url(debt.id), {'amount': amount}, format='json')
+
+
+def test_member_settling_whole_expense_becomes_its_payer(admin, member, dinner):
+    debt = make_debt(dinner, amount='300.00', debtor=member)
+
+    response = settle(admin, debt, '300.00')
+
+    assert response.status_code == 204
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (member, Decimal('300.00'))
+    assert Expense.objects.count() == 1
+    # Cheltuiala e acum a lui: datoria față de vechiul plătitor nu mai rămâne pe ea.
+    assert ExpenseDebt.objects.count() == 0
+
+
+def test_member_settling_rest_in_steps_ends_without_debts(admin, member, dinner):
+    debt = make_debt(dinner, amount='300.00', debtor=member)
+
+    settle(admin, debt, '100.00')
+    rest = ExpenseDebt.objects.get(status=ExpenseDebt.Status.OPEN)
+    response = settle(admin, rest, '200.00')
+
+    assert response.status_code == 204
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (member, Decimal('200.00'))
+    copy = Expense.objects.exclude(pk=dinner.pk).get()
+    assert (copy.person, copy.amount) == (member, Decimal('100.00'))
+    assert ExpenseDebt.objects.count() == 0
+
+
+def test_member_settling_part_gets_identical_expense(admin, member, dinner):
+    debt = make_debt(dinner, amount='100.00', debtor=member)
+
+    response = settle(admin, debt, '100.00')
+
+    assert response.status_code == 204
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (admin, Decimal('200.00'))
+    copy = Expense.objects.exclude(pk=dinner.pk).get()
+    assert (copy.person, copy.amount) == (member, Decimal('100.00'))
+    assert (copy.household, copy.date, copy.category, copy.subcategory) == (
+        dinner.household,
+        dinner.date,
+        dinner.category,
+        dinner.subcategory,
+    )
+    assert (copy.store, copy.note, copy.link) == ('La Plăcinte', 'Cină', 'https://bon.md/1')
+    assert copy.debts.count() == 0
+
+
+def test_external_settling_part_reduces_expense(admin, dinner):
+    debt = make_debt(dinner, amount='100.00')
+
+    response = settle(admin, debt, '100.00')
+
+    assert response.status_code == 204
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (admin, Decimal('200.00'))
+    assert Expense.objects.count() == 1
+
+
+def test_external_settling_whole_expense_deletes_it(admin, dinner):
+    debt = make_debt(dinner, amount='300.00')
+
+    response = settle(admin, debt, '300.00')
+
+    assert response.status_code == 204
+    assert Expense.objects.count() == 0
+    assert ExpenseDebt.objects.count() == 0
+
+
+def test_partial_settle_leaves_rest_open(admin, dinner):
+    debt = make_debt(dinner, amount='100.00')
+
+    response = settle(admin, debt, '40.00')
+
+    assert response.status_code == 204
+    debt.refresh_from_db()
+    assert (debt.status, debt.amount) == (ExpenseDebt.Status.SETTLED, Decimal('40.00'))
+    rest = dinner.debts.get(status=ExpenseDebt.Status.OPEN)
+    assert (rest.debtor_name, rest.amount) == ('Ion', Decimal('60.00'))
+    dinner.refresh_from_db()
+    assert dinner.amount == Decimal('260.00')
+
+
+def test_partial_settle_of_member_keeps_member_on_rest(admin, member, dinner):
+    debt = make_debt(dinner, amount='100.00', debtor=member)
+
+    settle(admin, debt, '30.00')
+
+    rest = dinner.debts.get(status=ExpenseDebt.Status.OPEN)
+    assert (rest.debtor, rest.debtor_name, rest.amount) == (member, '', Decimal('70.00'))
+
+
+def test_settling_debts_one_after_another(admin, member, dinner):
+    ion = make_debt(dinner, amount='100.00')
+    maria = make_debt(dinner, amount='200.00', debtor=member)
+
+    settle(admin, ion, '100.00')
+    response = settle(admin, maria, '200.00')
+
+    # După ce Ion și-a întors partea, datoria membrului acoperă toată suma rămasă.
+    assert response.status_code == 204
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (member, Decimal('200.00'))
+    assert Expense.objects.count() == 1
+
+
+def test_debtor_can_confirm_own_settlement(member, dinner):
+    debt = make_debt(dinner, debtor=member)
+
+    response = settle(member, debt, '100.00')
+
+    assert response.status_code == 204
+
+
+def test_settle_more_than_debt_returns_400(admin, dinner):
+    debt = make_debt(dinner)
+
+    response = settle(admin, debt, '100.01')
+
+    assert response.status_code == 400
+    assert response.json() == {'amount': [services.SETTLE_EXCEEDS_DEBT]}
+    debt.refresh_from_db()
+    assert debt.status == ExpenseDebt.Status.OPEN
+    dinner.refresh_from_db()
+    assert dinner.amount == Decimal('300.00')
+
+
+@pytest.mark.parametrize('amount', ['0', '-5', '', 'abc', None])
+def test_settle_with_invalid_amount_returns_400(admin, dinner, amount):
+    debt = make_debt(dinner)
+
+    response = settle(admin, debt, amount)
+
+    assert response.status_code == 400
+    assert 'amount' in response.json()
+
+
+@pytest.mark.parametrize('status', CLOSED_STATUSES)
+def test_settle_closed_debt_returns_400(admin, dinner, status):
+    debt = close_debt(make_debt(dinner), status)
+
+    response = settle(admin, debt, '100.00')
+
+    assert response.status_code == 400
+    assert response.json() == {'non_field_errors': [services.DEBT_NOT_OPEN]}
+    dinner.refresh_from_db()
+    assert dinner.amount == Decimal('300.00')
+
+
+def test_settle_debt_of_other_household_returns_404(other_admin, dinner):
+    debt = make_debt(dinner)
+
+    response = settle(other_admin, debt, '100.00')
+
+    assert response.status_code == 404
+    debt.refresh_from_db()
+    assert debt.status == ExpenseDebt.Status.OPEN
+
+
+def test_settle_unknown_debt_returns_404(admin):
+    response = client_for(admin).post(
+        settle_url('00000000-0000-0000-0000-000000000000'), {'amount': '1.00'}, format='json'
+    )
+
+    assert response.status_code == 404
+
+
+def test_settle_without_household_returns_403(user, dinner):
+    response = settle(user, make_debt(dinner), '100.00')
+
+    assert response.status_code == 403
+
+
+def test_settle_requires_csrf(admin, dinner):
+    debt = make_debt(dinner)
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(admin)
+
+    response = client.post(settle_url(debt.id), {'amount': '100.00'}, format='json')
+
+    assert response.status_code == 403
+    debt.refresh_from_db()
+    assert debt.status == ExpenseDebt.Status.OPEN
+
+
+# Anularea datoriei
+
+
+def test_cancel_debt_keeps_expense_unchanged(admin, dinner):
+    debt = make_debt(dinner)
+
+    response = client_for(admin).post(cancel_url(debt.id))
+
+    assert response.status_code == 204
+    debt.refresh_from_db()
+    assert debt.status == ExpenseDebt.Status.CANCELED
+    assert debt.settled_at == timezone.localdate()
+    assert debt.amount == Decimal('100.00')
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (admin, Decimal('300.00'))
+
+
+@pytest.mark.parametrize('status', CLOSED_STATUSES)
+def test_cancel_closed_debt_returns_400(admin, dinner, status):
+    debt = close_debt(make_debt(dinner), status)
+
+    response = client_for(admin).post(cancel_url(debt.id))
+
+    assert response.status_code == 400
+    assert response.json() == {'non_field_errors': [services.DEBT_NOT_OPEN]}
+
+
+def test_cancel_debt_of_other_household_returns_404(other_admin, dinner):
+    debt = make_debt(dinner)
+
+    response = client_for(other_admin).post(cancel_url(debt.id))
+
+    assert response.status_code == 404
+    debt.refresh_from_db()
+    assert debt.status == ExpenseDebt.Status.OPEN
+
+
+def test_cancel_requires_csrf(admin, dinner):
+    debt = make_debt(dinner)
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(admin)
+
+    response = client.post(cancel_url(debt.id))
+
+    assert response.status_code == 403
+    debt.refresh_from_db()
+    assert debt.status == ExpenseDebt.Status.OPEN

@@ -8,6 +8,8 @@ import Avatar from '../components/Avatar/Avatar'
 import Button from '../components/Button/Button'
 import Select, { type SelectOption } from '../components/Select/Select'
 import DeleteExpenseModal from '../expenses/DeleteExpenseModal'
+import DebtBadge from '../expenses/DebtBadge'
+import OpenDebtsModal from '../expenses/OpenDebtsModal'
 import ExpenseModal from '../expenses/ExpenseModal'
 import { formatAmount, formatDate } from '../utils/format'
 import {
@@ -33,6 +35,7 @@ export default function ExpensesPage() {
   const [deleting, setDeleting] = useState<Expense | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
+  const [isDebtsOpen, setIsDebtsOpen] = useState(false)
 
   // Filtrele stau în URL (?month=2026-11&category=...&person=...), nu în state.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -116,21 +119,30 @@ export default function ExpensesPage() {
             Toate cheltuielile gospodăriei, de la toți membrii.
           </p>
         </div>
-        <Button type="button" onClick={() => setEditing('new')}>
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
+        <div className={styles.headerActions}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsDebtsOpen(true)}
           >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Adaugă cheltuială
-        </Button>
+            Datorii deschise
+          </Button>
+          <Button type="button" onClick={() => setEditing('new')}>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Adaugă cheltuială
+          </Button>
+        </div>
       </div>
 
       <section className={styles.card} aria-label="Lista cheltuielilor">
@@ -298,7 +310,10 @@ export default function ExpensesPage() {
                         </div>
                       </td>
                       <td className={styles.amount}>
-                        {formatAmount(expense.amount)}
+                        <div className={styles.amountCell}>
+                          <DebtBadge debts={expense.debts} />
+                          {formatAmount(expense.amount)}
+                        </div>
                       </td>
                       <td className={styles.actionsCell}>
                         {expense.note ? (
@@ -414,6 +429,12 @@ export default function ExpensesPage() {
           expense={deleting}
           onClose={() => setDeleting(null)}
           onDeleted={handleDeleted}
+        />
+      )}
+      {isDebtsOpen && (
+        <OpenDebtsModal
+          onClose={() => setIsDebtsOpen(false)}
+          onChanged={() => setReloadKey((key) => key + 1)}
         />
       )}
     </div>

@@ -7,7 +7,7 @@ from categories.selectors import household_categories
 from households.selectors import household_members
 from subcategories.selectors import household_subcategories
 
-from .models import Expense
+from .models import DUPLICATE_OPEN_DEBT, Expense, ExpenseDebt
 
 REQUIRED_FIELDS = ('date', 'amount', 'store', 'person', 'category', 'subcategory')
 EMPTY_MESSAGE = 'Acest câmp nu poate fi gol.'
@@ -20,10 +20,64 @@ def with_current(queryset, current_id):
     return queryset | queryset.model.objects.filter(pk=current_id)
 
 
+class ExpenseDebtSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(required=False)
+    debtor_label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExpenseDebt
+        fields = ('id', 'debtor', 'debtor_name', 'debtor_label', 'amount', 'status', 'settled_at')
+        read_only_fields = ('status', 'settled_at')
+        extra_kwargs = {
+            'amount': {'min_value': Decimal('0.01'), 'error_messages': EMPTY_ERRORS},
+        }
+        validators = []
+
+    def get_debtor_label(self, debt):
+        return debt.debtor.username if debt.debtor_id else debt.debtor_name
+
+    def validate(self, attrs):
+        has_member = attrs.get('debtor') is not None
+        has_name = bool(attrs.get('debtor_name'))
+        if has_member == has_name:
+            raise serializers.ValidationError({'debtor': 'Alege un membru sau scrie un nume.'})
+        return attrs
+
+
+class SettleDebtSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        error_messages=EMPTY_ERRORS,
+    )
+
+
+class OpenDebtSerializer(ExpenseDebtSerializer):
+    expense = serializers.UUIDField(source='expense_id', read_only=True)
+    expense_date = serializers.DateField(source='expense.date', read_only=True)
+    expense_store = serializers.CharField(source='expense.store', read_only=True)
+    expense_amount = serializers.DecimalField(
+        source='expense.amount', max_digits=12, decimal_places=2, read_only=True
+    )
+    payer_name = serializers.CharField(source='expense.person.username', read_only=True)
+
+    class Meta(ExpenseDebtSerializer.Meta):
+        fields = (
+            *ExpenseDebtSerializer.Meta.fields,
+            'expense',
+            'expense_date',
+            'expense_store',
+            'expense_amount',
+            'payer_name',
+        )
+
+
 class ExpenseSerializer(serializers.ModelSerializer):
     person_name = serializers.CharField(source='person.username', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     subcategory_name = serializers.CharField(source='subcategory.name', read_only=True)
+    debts = ExpenseDebtSerializer(many=True, required=False)
 
     class Meta:
         model = Expense
@@ -40,6 +94,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'category_name',
             'subcategory',
             'subcategory_name',
+            'debts',
         )
         read_only_fields = ('id',)
         extra_kwargs = {
@@ -64,6 +119,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
             household_subcategories(household_id=household_id).filter(is_active=True),
             getattr(current, 'subcategory_id', None),
         )
+        self.fields['debts'].child.fields['debtor'].queryset = household_members(
+            household_id=household_id
+        )
 
     def to_internal_value(self, data):
         # Un câmp lăsat gol în formular vine ca ''. Îl tratăm ca valoare lipsă (None),
@@ -86,6 +144,15 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if value and not value.lower().startswith(('http://', 'https://')):
             raise serializers.ValidationError('Linkul trebuie să înceapă cu http:// sau https://.')
         return value
+
+    def validate_debts(self, debts):
+        seen = set()
+        for item in debts:
+            person = item.get('debtor') or item.get('debtor_name', '').lower()
+            if person in seen:
+                raise serializers.ValidationError(DUPLICATE_OPEN_DEBT)
+            seen.add(person)
+        return debts
 
 
 class ExpenseFilterSerializer(serializers.Serializer):

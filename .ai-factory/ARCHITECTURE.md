@@ -2,8 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-25 — linkul bonului la cheltuieli: câmpul opțional `Expense.link` (doar
-> http/https), în modalul cheltuielii și ca etichetă „Bon” lângă magazin în lista de cheltuieli.
+> Ultima actualizare: 2026-11-27 — datoriile la cheltuieli: API-ul (modelul `ExpenseDebt`, lista datoriilor
+> deschise, întoarcerea și anularea) și interfața (rândurile de datorii în ExpenseModal, eticheta „Datorie”,
+> popup-ul „Datorii deschise”).
 
 ## Prezentare generală
 
@@ -119,22 +120,44 @@ our-money/
 │   │   │                          #   store (magazinul, max 100, obligatoriu), note (max 255, opțională),
 │   │   │                          #   link (URLField max 1000, opțional — linkul bonului), created_at, updated_at; ordonare -date, -created_at;
 │   │   │                          #   index (household, date)
+│   │   │                          # ExpenseDebt: id UUID, expense (FK, CASCADE, related_name debts), datornicul —
+│   │   │                          #   debtor (FK user, PROTECT, membru al gospodăriei) sau debtor_name (persoană din
+│   │   │                          #   afară, max 100), exact unul dintre ele (CheckConstraint); amount (Decimal 12,2, > 0),
+│   │   │                          #   status open / settled / canceled, settled_at (data întoarcerii sau anulării);
+│   │   │                          #   o singură datorie deschisă per persoană pe cheltuială (UniqueConstraint parțial,
+│   │   │                          #   numele fără diferență de majuscule); ordonare created_at
 │   │   ├── selectors.py           # household_expenses(): cheltuielile gospodăriei cu filtre opționale (date_from,
-│   │   │                          #   date_to, category, subcategory, person) + select_related; expenses_total() (Sum)
-│   │   ├── services.py            # create_expense(), update_expense() (salvează și updated_at), delete_expense()
+│   │   │                          #   date_to, category, subcategory, person) + select_related + Prefetch(debts cu
+│   │   │                          #   debtor); expenses_total() (Sum); household_debts(); household_open_debts()
+│   │   │                          #   (deschise, din toate lunile, cele mai noi cheltuieli primele)
+│   │   ├── services.py            # create_expense(), update_expense() — atomic, cu datoriile: lista primită devine
+│   │   │                          #   starea datoriilor deschise (cu id → editare, fără id → nouă, lipsă → ștearsă;
+│   │   │                          #   cele închise nu se ating); după scriere: suma datoriilor deschise <= suma
+│   │   │                          #   cheltuielii, plătitorul nu își datorează sieși; delete_expense();
+│   │   │                          #   settle_debt() — select_for_update pe cheltuială și datorie; parțial → rândul
+│   │   │                          #   întors + un rând deschis cu restul; membru: toată suma → cheltuiala trece pe el
+│   │   │                          #   și datoriile ei se șterg, altfel copie identică pe el + originalul scade; extern: originalul scade,
+│   │   │                          #   la 0 se șterge; cancel_debt() — doar status, cheltuiala rămâne
 │   │   ├── serializers.py         # ExpenseSerializer: id-uri + person_name / category_name / subcategory_name;
 │   │   │                          #   persoană, categorie, subcategorie doar din gospodărie și active (la editare
 │   │   │                          #   se poate păstra valoarea curentă); subcategoria trebuie să fie a categoriei;
 │   │   │                          #   câmpurile obligatorii goale ('' / null / lipsă) → „Acest câmp nu poate fi gol.”;
 │   │   │                          #   validate_link(): linkul, dacă există, doar http:// sau https:// (DRF ar accepta și ftp);
+│   │   │                          #   debts: ExpenseDebtSerializer (id opțional, membru doar din gospodărie, exact unul
+│   │   │                          #   dintre debtor / debtor_name, sumă >= 0.01, debtor_label pentru afișare);
+│   │   │                          #   validate_debts(): aceeași persoană o singură dată în listă;
+│   │   │                          #   OpenDebtSerializer (+ detaliile cheltuielii), SettleDebtSerializer (amount);
 │   │   │                          #   ExpenseFilterSerializer: parametrii de filtrare, date_from <= date_to
-│   │   ├── views.py               # ExpenseListView (GET, POST), ExpenseDetailView (PATCH, DELETE) — orice membru
-│   │   ├── urls.py                # '' (expense-list), '<uuid:pk>/' (expense-detail)
+│   │   ├── views.py               # ExpenseListView (GET, POST), ExpenseDetailView (PATCH, DELETE), OpenDebtListView
+│   │   │                          #   (GET), DebtSettleView (POST), DebtCancelView (POST) — orice membru
+│   │   ├── urls.py                # '' (expense-list), 'debts/' (debt-list), 'debts/<uuid:pk>/settle/' (debt-settle),
+│   │   │                          #   'debts/<uuid:pk>/cancel/' (debt-cancel), '<uuid:pk>/' (expense-detail)
 │   │   ├── migrations/            # 0001_initial, 0002 (category / subcategory: PROTECT → RESTRICT),
-│   │   │                          #   0003 (store), 0004 (link)
+│   │   │                          #   0003 (store), 0004 (link), 0005 (ExpenseDebt)
 │   │   └── tests/
-│   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie
-│   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405
+│   │       ├── test_models.py     # câmpuri, ordonare, sumă > 0, RESTRICT, CASCADE la gospodărie; constrângerile datoriei
+│   │       └── test_api.py        # listare, filtre, total, adăugare, editare, ștergere, izolare, CSRF, 405;
+│   │                              #   datorii: validare, editare, datorii deschise, întoarcere (toate cazurile), anulare
 │   ├── incomes/                   # Veniturile gospodăriei
 │   │   ├── models.py              # Income: id UUID, household (FK, CASCADE), date, person (FK user, PROTECT),
 │   │   │                          #   income_source (FK, RESTRICT — nu se poate șterge cât are venituri),
@@ -247,7 +270,8 @@ our-money/
 │       │   │                      #   rol, nume, Ieșire) + <Outlet />
 │       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose;
 │       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există;
-│       │   │                      #   size="wide" (560px); Escape-ul unui modal deschis peste el e ignorat
+│       │   │                      #   size="wide" (560px) / "large" (640px); conținutul derulează în interior
+│       │   │                      #   (colțurile rămân rotunjite); Escape-ul unui modal deschis peste el e ignorat
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Avatar/            # Cerc cu inițiala (sau poza, prin imageUrl), culoare după nume, tooltip cu numele
@@ -266,11 +290,26 @@ our-money/
 │       │   └── IncomeSourceModal.tsx # Modalul sursei de venit (denumire + „Activă” la editare); stilurile din
 │       │                             #   categories/CategoryModal.module.css
 │       ├── expenses/
-│       │   ├── ExpenseModal.tsx   # Adăugare / editare: dată (implicit azi), categorie → subcategoriile ei, persoană
+│       │   ├── ExpenseModal.tsx   # Adăugare / editare (size="large"): dată (implicit azi), categorie → subcategoriile ei, persoană
 │       │   │                      #   (implicit userul curent), magazin, notă, link bon (opțional), sumă cu virgulă (trimisă cu punct);
-│       │   │                      #   opțiunile active + valoarea curentă la editare; erori pe câmp → onSaved()
+│       │   │                      #   bifa „Alții îmi datorează o parte” → DebtRows (la editare: datoriile deschise);
+│       │   │                      #   fără bifă trimite debts: []; opțiunile active + valoarea curentă la editare;
+│       │   │                      #   erori pe câmp și pe rândurile datoriilor → onSaved()
+│       │   ├── DebtRows.tsx       # Rândurile datoriilor: membru (fără plătitor) sau „Altcineva” + nume, sumă, ștergere;
+│       │   │                      #   „+ Adaugă persoană”
+│       │   ├── debts.ts           # Rândul din formular ↔ datoria din API (toDebtRow, toDebtInput), erorile
+│       │   │                      #   datoriilor (getDebtErrors: pe listă sau pe rând, după index)
+│       │   ├── amount.ts          # toDisplayAmount() / toApiAmount() — suma cu virgulă în formular, cu punct în API
+│       │   ├── DebtBadge.tsx      # Eticheta „Datorie” de lângă sumă (doar cu datorii deschise); tooltip cu cine și cât
+│       │   ├── OpenDebtsModal.tsx # Popup-ul „Datorii deschise” (size="wide"): datoriile din toate lunile, cu
+│       │   │                      #   „Întoarsă” și anulare; după fiecare acțiune se reîncarcă și anunță pagina (onChanged)
+│       │   ├── SettleDebtModal.tsx # Confirmarea întoarcerii: suma precompletată, modificabilă (parțial → restul
+│       │   │                       #   rămâne deschis) → settleDebt()
+│       │   ├── CancelDebtModal.tsx # Confirmarea anulării (cheltuiala rămâne neschimbată) → cancelDebt()
 │       │   ├── DeleteExpenseModal.tsx # Confirmarea ștergerii (sumă, dată, categorie) → deleteExpense() → onDeleted()
-│       │   └── ExpenseModal.module.css # Stiluri comune celor două modale
+│       │   ├── ExpenseModal.module.css # Stiluri comune modalurilor cheltuielii și ale datoriilor
+│       │   ├── DebtBadge.module.css
+│       │   └── OpenDebtsModal.module.css
 │       ├── incomes/
 │       │   ├── IncomeModal.tsx    # Adăugare / editare: dată (implicit azi), sursă de venit, persoană (implicit
 │       │   │                      #   userul curent), notă, sumă cu virgulă (trimisă cu punct); opțiunile active
@@ -301,8 +340,10 @@ our-money/
 │       │   ├── ExpensesPage.tsx   # Cheltuieli: filtrele în URL (?month, ?category, ?person), luna cu săgeți,
 │       │   │                      #   tabel cu lățimi fixe (avatarul persoanei, dată, categorie / subcategorie,
 │       │   │                      #   magazin, sumă, acțiuni) cu total; lângă magazin, eticheta „Bon” deschide
-│       │   │                      #   linkul bonului în tab nou (noopener noreferrer); nota se deschide sub rând la cerere;
-│       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
+│       │   │                      #   linkul bonului în tab nou (noopener noreferrer); lângă sumă, eticheta „Datorie”
+│       │   │                      #   (DebtBadge); nota se deschide sub rând la cerere;
+│       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey);
+│       │   │                      #   butonul „Datorii deschise” deschide OpenDebtsModal
 │       │   ├── IncomesPage.tsx    # Venituri: filtrele în URL (?month, ?person), luna cu săgeți, tabel (avatarul
 │       │   │                      #   persoanei, dată, sursă, sumă, acțiuni) cu total; nota se deschide sub rând;
 │       │   │                      #   IncomeModal / DeleteIncomeModal, apoi lista se reîncarcă (reloadKey);
@@ -343,7 +384,8 @@ our-money/
 │           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           ├── subcategories.ts   # fetchSubcategories(), createSubcategory(), updateSubcategory() + tipul Subcategory
 │           ├── income_sources.ts  # fetchIncomeSources(), createIncomeSource(), updateIncomeSource() + tipul IncomeSource
-│           ├── expenses.ts        # fetchExpenses(filtre), createExpense(), updateExpense(), deleteExpense() + tipurile
+│           ├── expenses.ts        # fetchExpenses(filtre), createExpense(), updateExpense(), deleteExpense(),
+│           │                      #   fetchOpenDebts(), settleDebt(), cancelDebt() + tipurile
 │           │                      #   Expense, ExpenseList, ExpenseFilters, ExpenseInput
 │           ├── incomes.ts         # fetchIncomes(filtre), createIncome(), updateIncome(), deleteIncome() + tipurile
 │           │                      #   Income, IncomeList, IncomeFilters, IncomeInput
@@ -377,7 +419,7 @@ our-money/
 | `categories` | Categoriile de cheltuieli | `Category` unic per gospodărie; API de listare, adăugare, editare |
 | `subcategories` | Subcategoriile categoriilor | `Subcategory` unic per categorie; API de listare și adăugare pe categorie, editare |
 | `income_sources` | Sursele de venit | `IncomeSource` unic per gospodărie; API de listare, adăugare, editare |
-| `expenses` | Cheltuielile | `Expense` al gospodăriei; API de listare cu filtre și total, adăugare, editare, ștergere — pentru orice membru |
+| `expenses` | Cheltuielile și datoriile | `Expense` al gospodăriei și `ExpenseDebt` (cine datorează o parte din cheltuială); API de listare cu filtre și total, adăugare, editare, ștergere, datorii deschise, întoarcerea și anularea unei datorii — pentru orice membru |
 | `incomes` | Veniturile | `Income` al gospodăriei; API de listare cu filtre (perioadă, persoană) și total, adăugare, editare, ștergere — pentru orice membru |
 | `savings` | Economiile | `SavingsEntry` al gospodăriei, cu sumă cu semn (depunere / retragere); API de listare cu sold, adăugare, editare, ștergere — doar pentru admin; soldul nu poate deveni negativ |
 
@@ -410,10 +452,13 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | GET | `/api/v1/income-sources/` | membru al gospodăriei | `200 [{id, name, is_active}]` — doar sursele de venit ale gospodăriei, după nume; `403` fără gospodărie |
 | POST | `/api/v1/income-sources/` | admin, cu CSRF | corp `{name}`; `201 {id, name, is_active}`; `400` nume invalid sau duplicat (sub `name`); `403` membru |
 | PATCH | `/api/v1/income-sources/<id>/` | admin, cu CSRF | corp `{name?, is_active?}`; `200` sursa de venit; `404` sursa altei gospodării; nu există `DELETE` (se dezactivează) |
-| GET | `/api/v1/expenses/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `category`, `subcategory`, `person`; `200 {expenses: [{id, date, amount, store, note, link, person, person_name, category, category_name, subcategory, subcategory_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
-| POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?, link?}`; `201` cheltuiala; `400` sumă ≤ 0, link care nu e http(s) sau are peste 1000 de caractere, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie |
-| PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `404` cheltuiala altei gospodării |
-| DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204`; `404` cheltuiala altei gospodării |
+| GET | `/api/v1/expenses/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `category`, `subcategory`, `person`; `200 {expenses: [{id, date, amount, store, note, link, person, person_name, category, category_name, subcategory, subcategory_name, debts: [{id, debtor, debtor_name, debtor_label, amount, status, settled_at}]}], total}` — `debts` cu tot istoricul (deschise, întoarse, anulate) — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
+| POST | `/api/v1/expenses/` | membru, cu CSRF | corp `{date, person, category, subcategory, amount, store, note?, link?, debts?: [{debtor sau debtor_name, amount}]}`; `201` cheltuiala; `400` sumă ≤ 0, link care nu e http(s) sau are peste 1000 de caractere, persoană / categorie / subcategorie din altă gospodărie sau dezactivată, subcategorie din altă categorie; datorii: fără membru și nume sau cu ambele, membru din altă gospodărie, aceeași persoană de două ori, totalul peste suma cheltuielii, plătitorul ca datornic (erorile unui rând sub `debts.<index>`, cele de listă sub `debts`) |
+| PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `debts` (dacă e trimis) înlocuiește datoriile deschise: rândurile cu `id` se editează, cele fără se adaugă, cele lipsă se șterg, cele închise rămân; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `400` aceleași reguli ale datoriilor (verificate și când se schimbă doar suma sau persoana), `id` care nu e o datorie deschisă a cheltuielii; `404` cheltuiala altei gospodării |
+| DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204` (datoriile se șterg odată cu ea); `404` cheltuiala altei gospodării |
+| GET | `/api/v1/expenses/debts/` | membru al gospodăriei | `200 {debts: [{id, debtor, debtor_name, debtor_label, amount, status, settled_at, expense, expense_date, expense_store, expense_amount, payer_name}]}` — doar datoriile deschise, din toate lunile, cele mai noi cheltuieli primele |
+| POST | `/api/v1/expenses/debts/<id>/settle/` | membru, cu CSRF | corp `{amount}`; `204`; datoria devine întoarsă, iar cheltuiala se ajustează (membru: trece pe el, fără datoriile ei, sau primește o copie cu partea lui; extern: scade, la 0 se șterge); sumă mai mică → restul rămâne deschis pe un rând nou; `400` sumă ≤ 0, peste datorie (sub `amount`), datorie deja închisă (sub `non_field_errors`); `404` datoria altei gospodării |
+| POST | `/api/v1/expenses/debts/<id>/cancel/` | membru, cu CSRF | `204`; datoria devine anulată, cheltuiala nu se schimbă; `400` datorie deja închisă; `404` datoria altei gospodării |
 | GET | `/api/v1/incomes/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `person`; `200 {incomes: [{id, date, amount, note, person, person_name, income_source, income_source_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
 | POST | `/api/v1/incomes/` | membru, cu CSRF | corp `{date, person, income_source, amount, note?}`; `201` venitul; `400` sumă ≤ 0, persoană / sursă din altă gospodărie sau sursă dezactivată |
 | PATCH | `/api/v1/incomes/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `200` venitul; sursa / persoana curentă se pot păstra chiar dacă sursa e dezactivată sau persoana a plecat; `404` venitul altei gospodării |
@@ -456,7 +501,7 @@ Toate rutele API sunt sub prefixul `/api/v1/`, inclus din `ourmoney/urls.py`.
 - **Teste:** pytest + pytest-django, rulate din rădăcina repo-ului; `pytest.ini` setează
   `DJANGO_SETTINGS_MODULE = ourmoney.settings` și `pythonpath = ourmoney`. Fixture-urile comune sunt
   în `ourmoney/conftest.py`: `api_client` (fără CSRF), `csrf_client` (CSRF activ, ca browserul),
-  `user` (cont fără rol, parola `PASSWORD`). 406 teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`, `savings`)
+  `user` (cont fără rol, parola `PASSWORD`). 479 de teste (`core`, `users`, `households`, `categories`, `subcategories`, `income_sources`, `expenses`, `incomes`, `savings`)
 - **Dependențe:** `ourmoney/requirements.txt` — dependențele aplicației (Django, djangorestframework,
   psycopg[binary], django-environ), singurele instalate pe Vercel; `requirements.txt` din rădăcină
   le include (`-r ourmoney/requirements.txt`) și adaugă uneltele de dezvoltare (pytest, pytest-django, ruff)

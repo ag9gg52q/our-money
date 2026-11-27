@@ -1,0 +1,67 @@
+/* Aceeași formă ca eticheta „Bon”, dar în culoarea caldă: e ceva de urmărit, nu un link. */
+.badge {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--color-warm-soft);
+  color: var(--color-warm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: help;
+}
+
+.badge:focus-visible {
+  outline: 2px solid var(--color-warm);
+  outline-offset: 2px;
+}
+
+/* Detaliile apar imediat, în stânga etichetei (peste coloana magazinului).
+   Nu deasupra sau dedesubt: tabelul derulează pe orizontală și le-ar tăia la primul / ultimul rând. */
+.tooltip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 8px);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgb(22 25 29 / 0.15);
+  color: var(--color-ink);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  /* ascuns vizual, dar citit de cititoarele de ecran ca parte din etichetă */
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.badge:hover .tooltip,
+.badge:focus .tooltip {
+  clip-path: none;
+  opacity: 1;
+}
+
+.tooltipTitle {
+  color: var(--color-warm);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}

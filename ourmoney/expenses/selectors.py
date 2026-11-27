@@ -1,8 +1,8 @@
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import Prefetch, Sum
 
-from .models import Expense
+from .models import Expense, ExpenseDebt
 
 
 def household_expenses(
@@ -20,7 +20,21 @@ def household_expenses(
     if person:
         expenses = expenses.filter(person=person)
 
-    return expenses.select_related('person', 'category', 'subcategory')
+    debts = Prefetch('debts', queryset=ExpenseDebt.objects.select_related('debtor'))
+    return expenses.select_related('person', 'category', 'subcategory').prefetch_related(debts)
+
+
+def household_open_debts(*, household_id):
+    return (
+        household_debts(household_id=household_id)
+        .filter(status=ExpenseDebt.Status.OPEN)
+        .select_related('debtor', 'expense__person')
+        .order_by('-expense__date', 'created_at')
+    )
+
+
+def household_debts(*, household_id):
+    return ExpenseDebt.objects.filter(expense__household_id=household_id)
 
 
 def expenses_total(*, expenses):

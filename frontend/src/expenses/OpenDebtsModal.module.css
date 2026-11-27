@@ -1,0 +1,118 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.message {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.alert {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 16px;
+  border: 1px dashed var(--color-input-border);
+  border-radius: 12px;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowTo {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Suma datorată, în culoarea etichetei „Datorie” din listă. */
+.rowAmount {
+  color: var(--color-warm);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.settleButton {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.iconButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
