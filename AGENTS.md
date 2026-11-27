@@ -120,7 +120,8 @@ our-money/
 │       ├── categories/       # Modalul de adăugare / editare a unei categorii
 │       ├── subcategories/    # Modalul de adăugare / editare a unei subcategorii
 │       ├── income_sources/   # Modalul de adăugare / editare a unei surse de venit
-│       ├── expenses/         # Modalurile cheltuielii: adăugare / editare, confirmarea ștergerii
+│       ├── expenses/         # Modalurile cheltuielii: adăugare / editare (cu datorii), confirmarea ștergerii;
+│       │                     #   eticheta „Datorie”, popup-ul „Datorii deschise” (întoarcere, anulare)
 │       ├── incomes/          # Modalurile venitului: adăugare / editare, confirmarea ștergerii
 │       ├── savings/          # Popup-ul Economii (sold + operațiuni, doar admin) și modalurile operațiunii
 │       ├── households/       # Modalurile gospodăriei: creare, alăturare, redenumire, promovare la admin

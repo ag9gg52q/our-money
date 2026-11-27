@@ -26,3 +26,124 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+.checkbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  color: var(--color-ink-soft);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.hint {
+  grid-column: 2;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.debts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-ground);
+}
+
+/* Un rând pe o singură linie: persoană, nume (doar pentru „Altcineva”), sumă, ștergere. */
+.debtRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.debtPerson,
+.debtName {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.debtAmount {
+  flex: 0 0 120px;
+}
+
+.removeDebt {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 48px;
+  /* aliniat cu câmpurile, sub etichetele lor */
+  margin-top: 29px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.removeDebt:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.addDebt {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border: 1px dashed var(--color-input-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addDebt:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.removeDebt:focus-visible,
+.addDebt:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Pe ecran îngust, persoana și numele ocupă câte un rând întreg; suma și ștergerea rămân împreună. */
+@media (max-width: 560px) {
+  .debtRow {
+    flex-wrap: wrap;
+  }
+
+  .debtPerson,
+  .debtName {
+    flex-basis: 100%;
+  }
+
+  .debtAmount {
+    flex: 1 1 0;
+  }
+}

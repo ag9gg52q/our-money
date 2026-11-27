@@ -25,7 +25,9 @@ face administrator un membru (rolul nu se mai retrage); celelalte
 secțiuni sunt „În curând”. Pagina Cheltuieli (pentru orice membru) arată cheltuielile unei luni,
 cu filtre pe categorie și persoană și totalul lor; din ea se adaugă, se editează și se șterg
 cheltuieli (sumele se scriu cu virgulă); o cheltuială poate avea linkul bonului, deschis din eticheta „Bon”
-de lângă magazin. Pagina Venituri (pentru orice membru) arată veniturile
+de lângă magazin. La o cheltuială se pot trece datorii (un membru sau cineva din afară datorează o parte);
+cheltuiala cu datorii deschise are eticheta „Datorie” lângă sumă, iar butonul „Datorii deschise” arată
+datoriile din toate lunile, de unde se marchează ca întoarse (integral sau parțial) sau se anulează. Pagina Venituri (pentru orice membru) arată veniturile
 unei luni, cu filtru pe persoană și totalul lor; din ea se adaugă, se editează și se șterg venituri.
 Economiile (doar pentru admin) se deschid din butonul „Economii” de pe pagina Venituri, într-un popup cu
 soldul, totalul depunerilor și al retragerilor și lista operațiunilor; din el se adaugă, se editează și

@@ -2,8 +2,9 @@
 
 > Acest document descrie **starea curentă** a proiectului. Se actualizează în același commit cu orice
 > schimbare de structură (aplicație nouă, modul nou, dependență nouă, mutare de fișiere).
-> Ultima actualizare: 2026-11-26 — datoriile la cheltuieli (API): modelul `ExpenseDebt`, datoriile trimise
-> odată cu cheltuiala, lista datoriilor deschise, întoarcerea și anularea unei datorii.
+> Ultima actualizare: 2026-11-27 — datoriile la cheltuieli: API-ul (modelul `ExpenseDebt`, lista datoriilor
+> deschise, întoarcerea și anularea) și interfața (rândurile de datorii în ExpenseModal, eticheta „Datorie”,
+> popup-ul „Datorii deschise”).
 
 ## Prezentare generală
 
@@ -269,7 +270,8 @@ our-money/
 │       │   │                      #   rol, nume, Ieșire) + <Outlet />
 │       │   ├── Modal/             # <dialog> nativ: se deschide la afișare; Esc / click pe fundal → onClose;
 │       │   │                      #   focusul inițial pe elementul cu data-autofocus, dacă există;
-│       │   │                      #   size="wide" (560px); Escape-ul unui modal deschis peste el e ignorat
+│       │   │                      #   size="wide" (560px) / "large" (640px); conținutul derulează în interior
+│       │   │                      #   (colțurile rămân rotunjite); Escape-ul unui modal deschis peste el e ignorat
 │       │   ├── PageLoader/        # „Se încarcă...” cât timp se verifică sesiunea
 │       │   ├── AuthLayout/        # Cadrul paginilor de autentificare (panou de brand + formular)
 │       │   ├── Avatar/            # Cerc cu inițiala (sau poza, prin imageUrl), culoare după nume, tooltip cu numele
@@ -288,11 +290,26 @@ our-money/
 │       │   └── IncomeSourceModal.tsx # Modalul sursei de venit (denumire + „Activă” la editare); stilurile din
 │       │                             #   categories/CategoryModal.module.css
 │       ├── expenses/
-│       │   ├── ExpenseModal.tsx   # Adăugare / editare: dată (implicit azi), categorie → subcategoriile ei, persoană
+│       │   ├── ExpenseModal.tsx   # Adăugare / editare (size="large"): dată (implicit azi), categorie → subcategoriile ei, persoană
 │       │   │                      #   (implicit userul curent), magazin, notă, link bon (opțional), sumă cu virgulă (trimisă cu punct);
-│       │   │                      #   opțiunile active + valoarea curentă la editare; erori pe câmp → onSaved()
+│       │   │                      #   bifa „Alții îmi datorează o parte” → DebtRows (la editare: datoriile deschise);
+│       │   │                      #   fără bifă trimite debts: []; opțiunile active + valoarea curentă la editare;
+│       │   │                      #   erori pe câmp și pe rândurile datoriilor → onSaved()
+│       │   ├── DebtRows.tsx       # Rândurile datoriilor: membru (fără plătitor) sau „Altcineva” + nume, sumă, ștergere;
+│       │   │                      #   „+ Adaugă persoană”
+│       │   ├── debts.ts           # Rândul din formular ↔ datoria din API (toDebtRow, toDebtInput), erorile
+│       │   │                      #   datoriilor (getDebtErrors: pe listă sau pe rând, după index)
+│       │   ├── amount.ts          # toDisplayAmount() / toApiAmount() — suma cu virgulă în formular, cu punct în API
+│       │   ├── DebtBadge.tsx      # Eticheta „Datorie” de lângă sumă (doar cu datorii deschise); tooltip cu cine și cât
+│       │   ├── OpenDebtsModal.tsx # Popup-ul „Datorii deschise” (size="wide"): datoriile din toate lunile, cu
+│       │   │                      #   „Întoarsă” și anulare; după fiecare acțiune se reîncarcă și anunță pagina (onChanged)
+│       │   ├── SettleDebtModal.tsx # Confirmarea întoarcerii: suma precompletată, modificabilă (parțial → restul
+│       │   │                       #   rămâne deschis) → settleDebt()
+│       │   ├── CancelDebtModal.tsx # Confirmarea anulării (cheltuiala rămâne neschimbată) → cancelDebt()
 │       │   ├── DeleteExpenseModal.tsx # Confirmarea ștergerii (sumă, dată, categorie) → deleteExpense() → onDeleted()
-│       │   └── ExpenseModal.module.css # Stiluri comune celor două modale
+│       │   ├── ExpenseModal.module.css # Stiluri comune modalurilor cheltuielii și ale datoriilor
+│       │   ├── DebtBadge.module.css
+│       │   └── OpenDebtsModal.module.css
 │       ├── incomes/
 │       │   ├── IncomeModal.tsx    # Adăugare / editare: dată (implicit azi), sursă de venit, persoană (implicit
 │       │   │                      #   userul curent), notă, sumă cu virgulă (trimisă cu punct); opțiunile active
@@ -323,8 +340,10 @@ our-money/
 │       │   ├── ExpensesPage.tsx   # Cheltuieli: filtrele în URL (?month, ?category, ?person), luna cu săgeți,
 │       │   │                      #   tabel cu lățimi fixe (avatarul persoanei, dată, categorie / subcategorie,
 │       │   │                      #   magazin, sumă, acțiuni) cu total; lângă magazin, eticheta „Bon” deschide
-│       │   │                      #   linkul bonului în tab nou (noopener noreferrer); nota se deschide sub rând la cerere;
-│       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey)
+│       │   │                      #   linkul bonului în tab nou (noopener noreferrer); lângă sumă, eticheta „Datorie”
+│       │   │                      #   (DebtBadge); nota se deschide sub rând la cerere;
+│       │   │                      #   ExpenseModal / DeleteExpenseModal, apoi lista se reîncarcă (reloadKey);
+│       │   │                      #   butonul „Datorii deschise” deschide OpenDebtsModal
 │       │   ├── IncomesPage.tsx    # Venituri: filtrele în URL (?month, ?person), luna cu săgeți, tabel (avatarul
 │       │   │                      #   persoanei, dată, sursă, sumă, acțiuni) cu total; nota se deschide sub rând;
 │       │   │                      #   IncomeModal / DeleteIncomeModal, apoi lista se reîncarcă (reloadKey);
@@ -365,7 +384,8 @@ our-money/
 │           ├── categories.ts      # fetchCategories(), createCategory(), updateCategory() + tipul Category
 │           ├── subcategories.ts   # fetchSubcategories(), createSubcategory(), updateSubcategory() + tipul Subcategory
 │           ├── income_sources.ts  # fetchIncomeSources(), createIncomeSource(), updateIncomeSource() + tipul IncomeSource
-│           ├── expenses.ts        # fetchExpenses(filtre), createExpense(), updateExpense(), deleteExpense() + tipurile
+│           ├── expenses.ts        # fetchExpenses(filtre), createExpense(), updateExpense(), deleteExpense(),
+│           │                      #   fetchOpenDebts(), settleDebt(), cancelDebt() + tipurile
 │           │                      #   Expense, ExpenseList, ExpenseFilters, ExpenseInput
 │           ├── incomes.ts         # fetchIncomes(filtre), createIncome(), updateIncome(), deleteIncome() + tipurile
 │           │                      #   Income, IncomeList, IncomeFilters, IncomeInput

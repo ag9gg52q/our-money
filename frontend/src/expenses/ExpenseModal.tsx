@@ -16,6 +16,15 @@ import Modal from '../components/Modal/Modal'
 import Select, { type SelectOption } from '../components/Select/Select'
 import TextField from '../components/TextField/TextField'
 import { today } from '../utils/months'
+import { toApiAmount, toDisplayAmount } from './amount'
+import DebtRows from './DebtRows'
+import {
+  type DebtRow,
+  emptyDebtRow,
+  getDebtErrors,
+  toDebtInput,
+  toDebtRow,
+} from './debts'
 import styles from './ExpenseModal.module.css'
 
 type ExpenseModalProps = {
@@ -33,16 +42,8 @@ const FIELDS = [
   'store',
   'note',
   'link',
+  'debts',
 ]
-
-// În formular suma se scrie cu virgulă (10,59); API-ul lucrează cu punct (10.59).
-function toDisplayAmount(value: string): string {
-  return value.replace('.', ',')
-}
-
-function toApiAmount(value: string): string {
-  return value.trim().replace(',', '.')
-}
 
 export default function ExpenseModal({
   expense,
@@ -59,6 +60,12 @@ export default function ExpenseModal({
   const [store, setStore] = useState(expense?.store ?? '')
   const [note, setNote] = useState(expense?.note ?? '')
   const [link, setLink] = useState(expense?.link ?? '')
+  const [debtRows, setDebtRows] = useState<DebtRow[]>(() =>
+    (expense?.debts ?? [])
+      .filter((debt) => debt.status === 'open')
+      .map(toDebtRow),
+  )
+  const [hasDebts, setHasDebts] = useState(debtRows.length > 0)
   const [categoryOptions, setCategoryOptions] = useState<SelectOption[]>([])
   const [subcategoryOptions, setSubcategoryOptions] = useState<SelectOption[]>(
     [],
@@ -128,6 +135,18 @@ export default function ExpenseModal({
     setSubcategoryOptions([])
   }
 
+  function handlePersonChange(value: string) {
+    setPerson(value)
+    setDebtRows((rows) =>
+      rows.map((row) => (row.debtor === value ? { ...row, debtor: '' } : row)),
+    )
+  }
+
+  function handleDebtsToggle(checked: boolean) {
+    setHasDebts(checked)
+    if (checked && debtRows.length === 0) setDebtRows([emptyDebtRow()])
+  }
+
   function handleClose() {
     if (!isSubmitting) onClose()
   }
@@ -146,6 +165,7 @@ export default function ExpenseModal({
       store: store.trim(),
       note: note.trim(),
       link: link.trim(),
+      debts: hasDebts ? debtRows.map(toDebtInput) : [],
     }
 
     try {
@@ -169,6 +189,10 @@ export default function ExpenseModal({
   const storeError = getErrorMessage(error, 'store')
   const noteError = getErrorMessage(error, 'note')
   const linkError = getErrorMessage(error, 'link')
+  const debtErrors = getDebtErrors(error)
+  const debtorOptions = personOptions.filter(
+    (option) => option.value !== person,
+  )
 
   const hasFieldError = FIELDS.some((field) => getErrorMessage(error, field))
   const formError =
@@ -181,6 +205,7 @@ export default function ExpenseModal({
   return (
     <Modal
       title={expense ? 'Editează cheltuiala' : 'Adaugă cheltuială'}
+      size="large"
       onClose={handleClose}
     >
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -221,7 +246,7 @@ export default function ExpenseModal({
           value={person}
           options={personOptions}
           placeholder="Selectează persoana"
-          onChange={setPerson}
+          onChange={handlePersonChange}
           error={personError}
         />
         <TextField
@@ -255,6 +280,32 @@ export default function ExpenseModal({
           onChange={(event) => setAmount(toDisplayAmount(event.target.value))}
           error={amountError}
         />
+
+        <label className={styles.checkbox}>
+          <input
+            type="checkbox"
+            checked={hasDebts}
+            onChange={(event) => handleDebtsToggle(event.target.checked)}
+          />
+          Alții îmi datorează o parte
+          <span className={styles.hint}>
+            Partea lor rămâne în cheltuială până o întorc.
+          </span>
+        </label>
+
+        {hasDebts && (
+          <DebtRows
+            rows={debtRows}
+            memberOptions={debtorOptions}
+            errors={debtErrors.rows}
+            onChange={setDebtRows}
+          />
+        )}
+        {debtErrors.list && (
+          <p className={styles.error} role="alert">
+            {debtErrors.list}
+          </p>
+        )}
 
         <div className={styles.actions}>
           <Button

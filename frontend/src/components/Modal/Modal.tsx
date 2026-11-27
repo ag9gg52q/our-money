@@ -6,7 +6,7 @@ type ModalProps = {
   title: string
   onClose: () => void
   children: ReactNode
-  size?: 'default' | 'wide'
+  size?: 'default' | 'wide' | 'large'
 }
 
 export default function Modal({
@@ -29,7 +29,7 @@ export default function Modal({
   return (
     <dialog
       ref={dialogRef}
-      className={`${styles.dialog} ${size === 'wide' ? styles.wide : ''}`}
+      className={`${styles.dialog} ${size === 'default' ? '' : styles[size]}`}
       aria-labelledby={titleId}
       onCancel={(event) => {
         // Un modal deschis peste acesta își tratează singur Escape-ul.

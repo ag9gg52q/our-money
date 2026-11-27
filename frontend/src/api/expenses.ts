@@ -13,6 +13,7 @@ export type Expense = {
   category_name: string
   subcategory: string
   subcategory_name: string
+  debts: ExpenseDebt[]
 }
 
 export type ExpenseList = {
@@ -38,7 +39,38 @@ export type ExpenseInput = Pick<
   | 'store'
   | 'note'
   | 'link'
->
+> & { debts?: ExpenseDebtInput[] }
+
+export type DebtStatus = 'open' | 'settled' | 'canceled'
+
+export type ExpenseDebt = {
+  id: string
+  debtor: string | null
+  debtor_name: string
+  debtor_label: string
+  amount: string
+  status: DebtStatus
+  settled_at: string | null
+}
+
+export type OpenDebt = ExpenseDebt & {
+  expense: string
+  expense_date: string
+  expense_store: string
+  expense_amount: string
+  payer_name: string
+}
+
+export type OpenDebtList = {
+  debts: OpenDebt[]
+}
+
+export type ExpenseDebtInput = {
+  id?: string
+  debtor: string | null
+  debtor_name: string
+  amount: string
+}
 
 export function fetchExpenses(filters: ExpenseFilters): Promise<ExpenseList> {
   const params = new URLSearchParams()
@@ -70,5 +102,22 @@ export function updateExpense(
 export function deleteExpense(id: string): Promise<void> {
   return apiFetch<void>(`/api/v1/expenses/${id}/`, {
     method: 'DELETE',
+  })
+}
+
+export function fetchOpenDebts(): Promise<OpenDebtList> {
+  return apiFetch<OpenDebtList>('/api/v1/expenses/debts/')
+}
+
+export function settleDebt(id: string, amount: string): Promise<void> {
+  return apiFetch<void>(`/api/v1/expenses/debts/${id}/settle/`, {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  })
+}
+
+export function cancelDebt(id: string): Promise<void> {
+  return apiFetch<void>(`/api/v1/expenses/debts/${id}/cancel/`, {
+    method: 'POST',
   })
 }
