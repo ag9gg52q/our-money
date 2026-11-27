@@ -135,8 +135,8 @@ our-money/
 │   │   │                          #   cele închise nu se ating); după scriere: suma datoriilor deschise <= suma
 │   │   │                          #   cheltuielii, plătitorul nu își datorează sieși; delete_expense();
 │   │   │                          #   settle_debt() — select_for_update pe cheltuială și datorie; parțial → rândul
-│   │   │                          #   întors + un rând deschis cu restul; membru: toată suma → cheltuiala trece pe el,
-│   │   │                          #   altfel copie identică pe el + originalul scade; extern: originalul scade,
+│   │   │                          #   întors + un rând deschis cu restul; membru: toată suma → cheltuiala trece pe el
+│   │   │                          #   și datoriile ei se șterg, altfel copie identică pe el + originalul scade; extern: originalul scade,
 │   │   │                          #   la 0 se șterge; cancel_debt() — doar status, cheltuiala rămâne
 │   │   ├── serializers.py         # ExpenseSerializer: id-uri + person_name / category_name / subcategory_name;
 │   │   │                          #   persoană, categorie, subcategorie doar din gospodărie și active (la editare
@@ -457,7 +457,7 @@ rolul (signal-ul `pre_delete` din `households/signals.py`, care rulează la oric
 | PATCH | `/api/v1/expenses/<id>/` | membru, cu CSRF | oricare dintre câmpuri; `debts` (dacă e trimis) înlocuiește datoriile deschise: rândurile cu `id` se editează, cele fără se adaugă, cele lipsă se șterg, cele închise rămân; `200` cheltuiala; categoria / subcategoria / persoana curentă se pot păstra chiar dacă sunt dezactivate sau persoana a plecat; `400` aceleași reguli ale datoriilor (verificate și când se schimbă doar suma sau persoana), `id` care nu e o datorie deschisă a cheltuielii; `404` cheltuiala altei gospodării |
 | DELETE | `/api/v1/expenses/<id>/` | membru, cu CSRF | `204` (datoriile se șterg odată cu ea); `404` cheltuiala altei gospodării |
 | GET | `/api/v1/expenses/debts/` | membru al gospodăriei | `200 {debts: [{id, debtor, debtor_name, debtor_label, amount, status, settled_at, expense, expense_date, expense_store, expense_amount, payer_name}]}` — doar datoriile deschise, din toate lunile, cele mai noi cheltuieli primele |
-| POST | `/api/v1/expenses/debts/<id>/settle/` | membru, cu CSRF | corp `{amount}`; `204`; datoria devine întoarsă, iar cheltuiala se ajustează (membru: trece pe el sau primește o copie cu partea lui; extern: scade, la 0 se șterge); sumă mai mică → restul rămâne deschis pe un rând nou; `400` sumă ≤ 0, peste datorie (sub `amount`), datorie deja închisă (sub `non_field_errors`); `404` datoria altei gospodării |
+| POST | `/api/v1/expenses/debts/<id>/settle/` | membru, cu CSRF | corp `{amount}`; `204`; datoria devine întoarsă, iar cheltuiala se ajustează (membru: trece pe el, fără datoriile ei, sau primește o copie cu partea lui; extern: scade, la 0 se șterge); sumă mai mică → restul rămâne deschis pe un rând nou; `400` sumă ≤ 0, peste datorie (sub `amount`), datorie deja închisă (sub `non_field_errors`); `404` datoria altei gospodării |
 | POST | `/api/v1/expenses/debts/<id>/cancel/` | membru, cu CSRF | `204`; datoria devine anulată, cheltuiala nu se schimbă; `400` datorie deja închisă; `404` datoria altei gospodării |
 | GET | `/api/v1/incomes/` | membru al gospodăriei | parametri opționali `date_from`, `date_to` (inclusiv), `person`; `200 {incomes: [{id, date, amount, note, person, person_name, income_source, income_source_name}], total}` — sumele ca text cu 2 zecimale, cele mai noi primele; `400` parametru invalid sau `date_to` înainte de `date_from` |
 | POST | `/api/v1/incomes/` | membru, cu CSRF | corp `{date, person, income_source, amount, note?}`; `201` venitul; `400` sumă ≤ 0, persoană / sursă din altă gospodărie sau sursă dezactivată |

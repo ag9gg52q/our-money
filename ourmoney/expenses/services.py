@@ -105,6 +105,9 @@ def settle_debt(*, debt, amount):
     if debt.debtor_id and amount == expense.amount:
         expense.person_id = debt.debtor_id
         expense.save(update_fields=['person', 'updated_at'])
+        # Cheltuiala e acum în întregime a datornicului: datoriile ei erau față de vechiul plătitor
+        # și nu mai au rost aici. Deschise nu mai sunt (suma lor nu poate depăși cheltuiala).
+        expense.debts.all().delete()
     elif debt.debtor_id:
         _copy_expense(expense=expense, person_id=debt.debtor_id, amount=amount)
         _reduce_expense(expense=expense, amount=amount)

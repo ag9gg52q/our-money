@@ -1164,9 +1164,23 @@ def test_member_settling_whole_expense_becomes_its_payer(admin, member, dinner):
     dinner.refresh_from_db()
     assert (dinner.person, dinner.amount) == (member, Decimal('300.00'))
     assert Expense.objects.count() == 1
-    debt.refresh_from_db()
-    assert debt.status == ExpenseDebt.Status.SETTLED
-    assert debt.settled_at == timezone.localdate()
+    # Cheltuiala e acum a lui: datoria față de vechiul plătitor nu mai rămâne pe ea.
+    assert ExpenseDebt.objects.count() == 0
+
+
+def test_member_settling_rest_in_steps_ends_without_debts(admin, member, dinner):
+    debt = make_debt(dinner, amount='300.00', debtor=member)
+
+    settle(admin, debt, '100.00')
+    rest = ExpenseDebt.objects.get(status=ExpenseDebt.Status.OPEN)
+    response = settle(admin, rest, '200.00')
+
+    assert response.status_code == 204
+    dinner.refresh_from_db()
+    assert (dinner.person, dinner.amount) == (member, Decimal('200.00'))
+    copy = Expense.objects.exclude(pk=dinner.pk).get()
+    assert (copy.person, copy.amount) == (member, Decimal('100.00'))
+    assert ExpenseDebt.objects.count() == 0
 
 
 def test_member_settling_part_gets_identical_expense(admin, member, dinner):
